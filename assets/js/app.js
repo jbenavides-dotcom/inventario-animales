@@ -32,14 +32,27 @@ var App = (function () {
 
     initSidebar();
     initExportImport();
+    initSheetsConnection();
 
-    // Cargar datos de ejemplo si esta vacio
-    DB.loadSampleData().then(function (loaded) {
-      if (loaded) {
-        Utils.showToast('Datos de ejemplo cargados', 'info');
-      }
-      initPage();
-    });
+    // Si hay conexion a Sheets, sincronizar primero
+    if (DB.isConnected()) {
+      updateConnectionStatus(true);
+      DB.syncFromSheets().then(function(synced) {
+        if (synced) {
+          Utils.showToast('Sincronizado con Google Sheets', 'success');
+        }
+        initPage();
+      });
+    } else {
+      updateConnectionStatus(false);
+      // Cargar datos de ejemplo si esta vacio
+      DB.loadSampleData().then(function (loaded) {
+        if (loaded) {
+          Utils.showToast('Datos de ejemplo cargados', 'info');
+        }
+        initPage();
+      });
+    }
   }
 
   function detectPageFromURL() {
@@ -165,6 +178,99 @@ var App = (function () {
         Utils.showToast(err.message, 'error');
       });
       event.target.value = '';
+    });
+  }
+
+  // ══════════════════════════════════════════
+  //  GOOGLE SHEETS CONNECTION
+  // ══════════════════════════════════════════
+
+  function initSheetsConnection() {
+    var btnConnect = document.getElementById('btn-connect-sheets');
+    var btnSync = document.getElementById('btn-sync-sheets');
+
+    if (btnConnect) {
+      btnConnect.addEventListener('click', showSheetsConfigModal);
+    }
+    if (btnSync) {
+      btnSync.addEventListener('click', function() {
+        if (!DB.isConnected()) {
+          showSheetsConfigModal();
+          return;
+        }
+        Utils.showToast('Sincronizando...', 'info');
+        DB.syncFromSheets().then(function(ok) {
+          if (ok) {
+            Utils.showToast('Datos sincronizados desde Google Sheets', 'success');
+            setTimeout(function() { location.reload(); }, 500);
+          } else {
+            Utils.showToast('Error al sincronizar', 'error');
+          }
+        });
+      });
+    }
+  }
+
+  function showSheetsConfigModal() {
+    var currentUrl = DB.getAppsScriptUrl() || '';
+    var html = '<div class="form-group">' +
+      '<label class="form-label">URL del Apps Script (Web App)</label>' +
+      '<input type="url" class="form-control" id="input-sheets-url" value="' + currentUrl + '" placeholder="https://script.google.com/macros/s/.../exec">' +
+      '<small style="color:var(--color-muted);display:block;margin-top:0.5rem">Pega aqui la URL que obtienes al implementar el Apps Script como aplicacion web.</small>' +
+      '</div>';
+
+    if (currentUrl) {
+      html += '<div style="margin-top:1rem">' +
+        '<button class="btn btn-danger btn-sm" id="btn-disconnect-sheets">Desconectar Google Sheets</button>' +
+        '</div>';
+    }
+
+    openModal('Conectar Google Sheets', html, function() {
+      var url = document.getElementById('input-sheets-url').value.trim();
+      if (!url) {
+        Utils.showToast('Ingresa una URL valida', 'warning');
+        return;
+      }
+      DB.setAppsScriptUrl(url);
+      Utils.showToast('URL guardada. Sincronizando...', 'success');
+      closeModal();
+      DB.syncFromSheets().then(function(ok) {
+        if (ok) {
+          Utils.showToast('Conectado y sincronizado con Google Sheets', 'success');
+          updateConnectionStatus(true);
+          setTimeout(function() { location.reload(); }, 800);
+        } else {
+          Utils.showToast('URL guardada pero no se pudo sincronizar. Verifica la URL.', 'warning');
+          updateConnectionStatus(true);
+        }
+      });
+    });
+
+    // Boton desconectar
+    setTimeout(function() {
+      var btnDisconnect = document.getElementById('btn-disconnect-sheets');
+      if (btnDisconnect) {
+        btnDisconnect.addEventListener('click', function() {
+          DB.setAppsScriptUrl('');
+          localStorage.removeItem('inv_apps_script_url');
+          Utils.showToast('Desconectado de Google Sheets', 'info');
+          updateConnectionStatus(false);
+          closeModal();
+        });
+      }
+    }, 100);
+  }
+
+  function updateConnectionStatus(connected) {
+    var indicators = document.querySelectorAll('.connection-status');
+    indicators.forEach(function(el) {
+      if (connected) {
+        el.innerHTML = '<span style="color:var(--color-success)">● Google Sheets</span>';
+        el.title = 'Conectado a Google Sheets';
+      } else {
+        el.innerHTML = '<span style="color:var(--color-muted)">○ Solo local</span>';
+        el.title = 'Datos solo en localStorage';
+      }
     });
   }
 
