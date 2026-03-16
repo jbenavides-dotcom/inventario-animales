@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Costos Operativos — Inventario LP&ET</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body data-page="costos">
+    <div class="app-layout">
+        <!-- SIDEBAR -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2 class="sidebar-title">🐄 Inventario LP&ET</h2>
+                <button class="sidebar-toggle" onclick="App.toggleSidebar()">☰</button>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="index.html" class="sidebar-nav-item" data-page="dashboard">
+                    <span class="nav-icon">📊</span>
+                    <span class="nav-label">Dashboard</span>
+                </a>
+                <a href="inventario.html" class="sidebar-nav-item" data-page="inventario">
+                    <span class="nav-icon">🐾</span>
+                    <span class="nav-label">Inventario</span>
+                </a>
+                <a href="ordenes.html" class="sidebar-nav-item" data-page="ordenes">
+                    <span class="nav-icon">💰</span>
+                    <span class="nav-label">Compras/Ventas</span>
+                </a>
+                <a href="salud.html" class="sidebar-nav-item" data-page="salud">
+                    <span class="nav-icon">💉</span>
+                    <span class="nav-label">Salud</span>
+                </a>
+                <a href="costos.html" class="sidebar-nav-item active" data-page="costos">
+                    <span class="nav-icon">📋</span>
+                    <span class="nav-label">Costos</span>
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="export-import-bar">
+                    <button class="btn btn-sm btn-secondary" onclick="App.exportData()" title="Exportar datos">📥 Exportar</button>
+                    <label class="btn btn-sm btn-secondary" title="Importar datos">
+                        📤 Importar
+                        <input type="file" accept=".json" onchange="App.handleImport(event)" style="display:none">
+                    </label>
+                </div>
+            </div>
+        </aside>
+
+        <!-- BOTTOM NAV (mobile) -->
+        <nav class="bottom-nav" id="bottomNav">
+            <a href="index.html" class="bottom-nav-item"><span>📊</span><span>Dashboard</span></a>
+            <a href="inventario.html" class="bottom-nav-item"><span>🐾</span><span>Inventario</span></a>
+            <a href="ordenes.html" class="bottom-nav-item"><span>💰</span><span>Compras</span></a>
+            <a href="salud.html" class="bottom-nav-item"><span>💉</span><span>Salud</span></a>
+            <a href="costos.html" class="bottom-nav-item active"><span>📋</span><span>Costos</span></a>
+        </nav>
+
+        <!-- MAIN CONTENT -->
+        <main class="main-content">
+            <div class="page-header">
+                <h1>Costos Operativos</h1>
+                <button class="btn btn-primary" id="btnAddCosto">+ Nuevo Costo</button>
+            </div>
+
+            <div class="stats-grid" style="margin-bottom:1.5rem">
+                <div class="stat-card">
+                    <div class="stat-icon" style="background:#ffebee;color:#c62828">📋</div>
+                    <div class="stat-info">
+                        <span class="stat-number" id="costoMesActual">$0</span>
+                        <span class="stat-label">Costos este mes</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background:#f5f5f5;color:#616161">📋</div>
+                    <div class="stat-info">
+                        <span class="stat-number" id="costoMesAnterior">$0</span>
+                        <span class="stat-label">Mes anterior</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="filter-bar">
+                <select class="form-select" id="filterCategoriaCosto">
+                    <option value="">Todas las categorías</option>
+                    <option>Alimentación</option><option>Veterinario</option><option>Medicamento</option>
+                    <option>Herraje</option><option>Insumos</option><option>Transporte</option>
+                    <option>Infraestructura</option><option>Otro</option>
+                </select>
+                <input type="month" class="form-control" id="filterMesCosto">
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:1.5rem" class="costos-charts-grid">
+                <div class="card">
+                    <h3>Costos por Categoría</h3>
+                    <div class="chart-container">
+                        <canvas id="chart-costos-categoria"></canvas>
+                    </div>
+                </div>
+                <div class="card" style="display:flex;align-items:center;justify-content:center">
+                    <div id="costosSummary" style="width:100%"></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="table-responsive">
+                    <table class="data-table" id="tablaCostos">
+                        <thead>
+                            <tr>
+                                <th>ID</th><th>Fecha</th><th>Categoría</th><th>Descripción</th>
+                                <th>Animales</th><th>Proveedor</th><th>Total</th><th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbodyCostos"></tbody>
+                    </table>
+                </div>
+                <div class="empty-state" id="emptyCostos" style="display:none">
+                    <span style="font-size:3rem">📋</span>
+                    <p>No hay costos registrados</p>
+                    <button class="btn btn-primary" onclick="document.getElementById('btnAddCosto').click()">Registrar primer costo</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Toast container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Modal container -->
+    <div id="modalContainer"></div>
+
+    <!-- Scripts -->
+    <script src="assets/js/utils.js"></script>
+    <script src="assets/js/db.js"></script>
+    <script src="assets/js/charts.js"></script>
+    <script src="assets/js/app.js"></script>
+</body>
+</html>
