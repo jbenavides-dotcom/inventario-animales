@@ -11,8 +11,8 @@ const DB = (function() {
     // ============================================
     // CONFIGURACIÓN SUPABASE
     // ============================================
-    const SUPABASE_URL = 'https://rzrqkrrfwytkokgpavek.supabase.co';
-    const SUPABASE_KEY = 'sb_publishable_3VPCZ3_D_VckPa7hqjkAVw_tZf4eg7E';
+    const SUPABASE_URL = 'https://pzkxbymwvimwnfmqoihj.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_VzKz-KApgtUosdpch3mdVQ_Ojt4pEp0';
 
     const HEADERS = {
         'apikey': SUPABASE_KEY,
