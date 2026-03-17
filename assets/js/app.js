@@ -50,7 +50,7 @@ var App = (function () {
       updateConnectionStatus(true);
       DB.syncFromSheets().then(function(synced) {
         if (synced) {
-          Utils.showToast('Sincronizado con Google Sheets', 'success');
+          Utils.showToast('Sincronizado con Supabase', 'success');
         }
         safeInitPage();
       }).catch(function(err) {
@@ -219,7 +219,7 @@ var App = (function () {
         Utils.showToast('Sincronizando...', 'info');
         DB.syncFromSheets().then(function(ok) {
           if (ok) {
-            Utils.showToast('Datos sincronizados desde Google Sheets', 'success');
+            Utils.showToast('Datos sincronizados desde Supabase', 'success');
             setTimeout(function() { location.reload(); }, 500);
           } else {
             Utils.showToast('Error al sincronizar', 'error');
@@ -239,11 +239,11 @@ var App = (function () {
 
     if (currentUrl) {
       html += '<div style="margin-top:1rem">' +
-        '<button class="btn btn-danger btn-sm" id="btn-disconnect-sheets">Desconectar Google Sheets</button>' +
+        '<button class="btn btn-danger btn-sm" id="btn-disconnect-sheets">Desconectar Supabase</button>' +
         '</div>';
     }
 
-    openModal('Conectar Google Sheets', html, function() {
+    openModal('Conectar Supabase', html, function() {
       var url = document.getElementById('input-sheets-url').value.trim();
       if (!url) {
         Utils.showToast('Ingresa una URL valida', 'warning');
@@ -254,7 +254,7 @@ var App = (function () {
       closeModal();
       DB.syncFromSheets().then(function(ok) {
         if (ok) {
-          Utils.showToast('Conectado y sincronizado con Google Sheets', 'success');
+          Utils.showToast('Conectado y sincronizado con Supabase', 'success');
           updateConnectionStatus(true);
           setTimeout(function() { location.reload(); }, 800);
         } else {
@@ -271,7 +271,7 @@ var App = (function () {
         btnDisconnect.addEventListener('click', function() {
           DB.setAppsScriptUrl('');
           localStorage.removeItem('inv_apps_script_url');
-          Utils.showToast('Desconectado de Google Sheets', 'info');
+          Utils.showToast('Desconectado de Supabase', 'info');
           updateConnectionStatus(false);
           closeModal();
         });
@@ -283,8 +283,8 @@ var App = (function () {
     var indicators = document.querySelectorAll('.connection-status');
     indicators.forEach(function(el) {
       if (connected) {
-        el.innerHTML = '<span style="color:var(--color-success)">● Google Sheets</span>';
-        el.title = 'Conectado a Google Sheets';
+        el.innerHTML = '<span style="color:var(--color-success)">● Supabase</span>';
+        el.title = 'Conectado a Supabase';
       } else {
         el.innerHTML = '<span style="color:var(--color-muted)">○ Solo local</span>';
         el.title = 'Datos solo en localStorage';
