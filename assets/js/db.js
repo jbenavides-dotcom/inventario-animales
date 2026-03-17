@@ -1,21 +1,24 @@
 /**
- * db.js — Capa de datos con Google Sheets backend
+ * db.js — Capa de datos con Supabase backend
  * Inventario de Animales LP&ET
  *
- * Estrategia: Google Sheets (via Apps Script) como fuente de verdad.
+ * Estrategia: Supabase REST API como fuente de verdad.
  * Cache local en localStorage para velocidad.
- * Fallback a localStorage si no hay URL de Apps Script.
+ * Mapeo camelCase (app.js) ↔ snake_case (Supabase).
  */
 
 const DB = (function() {
     // ============================================
-    // CONFIGURACIÓN — Pegar aquí la URL del Apps Script
+    // CONFIGURACIÓN SUPABASE
     // ============================================
-    let APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxwKiUh0b3jQFyjSfvGTuGkXv7X3EQywgZYndPovAUl-lYlvmsjW42WJ89IgEt3ZuxR/exec';
+    const SUPABASE_URL = 'https://rzrqkrrfwytkokgpavek.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_3VPCZ3_D_VckPa7hqjkAVw_tZf4eg7E';
 
-    // Intentar leer URL guardada en localStorage
-    const savedUrl = localStorage.getItem('inv_apps_script_url');
-    if (savedUrl) APPS_SCRIPT_URL = savedUrl;
+    const HEADERS = {
+        'apikey': SUPABASE_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_KEY,
+        'Content-Type': 'application/json'
+    };
 
     const COLLECTIONS = ['animales', 'ordenes', 'actividades', 'costos', 'huevos'];
 
@@ -27,7 +30,52 @@ const DB = (function() {
         huevos: 'HUE'
     };
 
-    // Cache local
+    // ── Mapeo de campos: camelCase (app.js) → snake_case (Supabase) ──
+
+    const FIELD_MAPS = {
+        animales: {
+            id:'id', nombre:'nombre', tipo:'tipo', raza:'raza', sexo:'sexo',
+            fechaNacimiento:'fecha_nacimiento', peso:'peso', colorMarcas:'color_marcas',
+            estado:'estado', ubicacion:'ubicacion', procedencia:'procedencia',
+            fechaIngreso:'fecha_ingreso', costoAdquisicion:'costo_adquisicion',
+            madreId:'madre_id', padreId:'padre_id', foto:'foto', observaciones:'observaciones'
+        },
+        ordenes: {
+            id:'id', fecha:'fecha', tipo:'tipo', animalId:'animal_id', nombreAnimal:'nombre_animal',
+            tipoAnimal:'tipo_animal', cantidad:'cantidad', precioUnitario:'precio_unitario',
+            total:'total', compradorVendedor:'comprador_vendedor', telefono:'telefono',
+            documento:'documento', metodoPago:'metodo_pago', estadoOrden:'estado_orden',
+            observaciones:'observaciones'
+        },
+        actividades: {
+            id:'id', fecha:'fecha', animalId:'animal_id', nombreAnimal:'nombre_animal',
+            tipoActividad:'tipo_actividad', descripcion:'descripcion', producto:'producto',
+            dosis:'dosis', veterinario:'veterinario', costo:'costo',
+            proximaFecha:'proxima_fecha', estado:'estado', observaciones:'observaciones'
+        },
+        costos: {
+            id:'id', fecha:'fecha', categoria:'categoria', descripcion:'descripcion',
+            animales:'animales', proveedor:'proveedor', cantidad:'cantidad', unidad:'unidad',
+            valorUnitario:'valor_unitario', total:'total', metodoPago:'metodo_pago',
+            factura:'factura', observaciones:'observaciones'
+        },
+        huevos: {
+            id:'id', fecha:'fecha', cantidad:'cantidad', rotos:'rotos',
+            ubicacion:'ubicacion', observaciones:'observaciones'
+        }
+    };
+
+    // Mapas inversos: snake_case → camelCase (generados automáticamente)
+    const REVERSE_MAPS = {};
+    Object.keys(FIELD_MAPS).forEach(col => {
+        REVERSE_MAPS[col] = {};
+        Object.keys(FIELD_MAPS[col]).forEach(camel => {
+            REVERSE_MAPS[col][FIELD_MAPS[col][camel]] = camel;
+        });
+    });
+
+    // ── Cache local ──
+
     let _cache = {
         animales: null,
         ordenes: null,
@@ -38,15 +86,31 @@ const DB = (function() {
     let _cacheTimestamp = 0;
     const CACHE_TTL = 30000; // 30 segundos
 
-    // ── Helpers ──
+    // ── Helpers de mapeo ──
 
-    function isOnline() {
-        return APPS_SCRIPT_URL && APPS_SCRIPT_URL.length > 0;
+    function toCamel(collection, row) {
+        const map = REVERSE_MAPS[collection];
+        if (!map) return row;
+        const out = {};
+        Object.keys(row).forEach(snakeKey => {
+            const camelKey = map[snakeKey] || snakeKey;
+            out[camelKey] = row[snakeKey];
+        });
+        return out;
     }
 
-    function collectionToSheet(collection) {
-        return collection.charAt(0).toUpperCase() + collection.slice(1);
+    function toSnake(collection, obj) {
+        const map = FIELD_MAPS[collection];
+        if (!map) return obj;
+        const out = {};
+        Object.keys(obj).forEach(camelKey => {
+            const snakeKey = map[camelKey] || camelKey;
+            out[snakeKey] = obj[camelKey];
+        });
+        return out;
     }
+
+    // ── Helpers de localStorage ──
 
     function _localKey(collection) {
         return 'inv_' + collection;
@@ -69,47 +133,70 @@ const DB = (function() {
         }
     }
 
-    // ── Comunicación con Apps Script ──
+    // ── Comunicación con Supabase REST API ──
 
-    async function _fetchGet(params) {
-        const url = new URL(APPS_SCRIPT_URL);
-        Object.keys(params).forEach(k => url.searchParams.append(k, params[k]));
-        const response = await fetch(url.toString());
-        if (!response.ok) throw new Error('Error HTTP: ' + response.status);
-        return await response.json();
+    async function _supabaseGet(collection) {
+        const url = SUPABASE_URL + '/rest/v1/' + collection + '?select=*&order=id';
+        const response = await fetch(url, { headers: HEADERS });
+        if (!response.ok) throw new Error('Supabase GET error: ' + response.status);
+        const rows = await response.json();
+        return rows.map(row => toCamel(collection, row));
     }
 
-    async function _fetchPost(body) {
-        const response = await fetch(APPS_SCRIPT_URL, {
+    async function _supabasePost(collection, item) {
+        const url = SUPABASE_URL + '/rest/v1/' + collection;
+        const response = await fetch(url, {
             method: 'POST',
-            headers: { 'Content-Type': 'text/plain' }, // text/plain para evitar CORS preflight
-            body: JSON.stringify(body)
+            headers: { ...HEADERS, 'Prefer': 'return=representation' },
+            body: JSON.stringify(toSnake(collection, item))
         });
-        if (!response.ok) throw new Error('Error HTTP: ' + response.status);
-        return await response.json();
+        if (!response.ok) throw new Error('Supabase POST error: ' + response.status);
+        const rows = await response.json();
+        return rows.length > 0 ? toCamel(collection, rows[0]) : item;
     }
 
-    // ── Sync: descargar todo desde Sheets ──
+    async function _supabasePatch(collection, id, updates) {
+        const url = SUPABASE_URL + '/rest/v1/' + collection + '?id=eq.' + encodeURIComponent(id);
+        const response = await fetch(url, {
+            method: 'PATCH',
+            headers: { ...HEADERS, 'Prefer': 'return=representation' },
+            body: JSON.stringify(toSnake(collection, updates))
+        });
+        if (!response.ok) throw new Error('Supabase PATCH error: ' + response.status);
+        const rows = await response.json();
+        return rows.length > 0 ? toCamel(collection, rows[0]) : null;
+    }
 
-    async function syncFromSheets() {
-        if (!isOnline()) return false;
+    async function _supabaseDelete(collection, id) {
+        const url = SUPABASE_URL + '/rest/v1/' + collection + '?id=eq.' + encodeURIComponent(id);
+        const response = await fetch(url, {
+            method: 'DELETE',
+            headers: HEADERS
+        });
+        if (!response.ok) throw new Error('Supabase DELETE error: ' + response.status);
+    }
+
+    // ── Sync: descargar todo desde Supabase ──
+
+    async function sync() {
         try {
-            const result = await _fetchGet({ action: 'getAll' });
-            if (result.success && result.data) {
-                COLLECTIONS.forEach(col => {
-                    if (Array.isArray(result.data[col])) {
-                        _saveLocal(col, result.data[col]);
-                        _cache[col] = result.data[col];
-                    }
-                });
-                _cacheTimestamp = Date.now();
-                return true;
-            }
-            return false;
+            const promises = COLLECTIONS.map(col => _supabaseGet(col));
+            const results = await Promise.all(promises);
+            COLLECTIONS.forEach((col, i) => {
+                _saveLocal(col, results[i]);
+                _cache[col] = results[i];
+            });
+            _cacheTimestamp = Date.now();
+            return true;
         } catch(err) {
-            console.warn('Error sincronizando desde Sheets:', err);
+            console.warn('Error sincronizando desde Supabase:', err);
             return false;
         }
+    }
+
+    // Alias para compatibilidad con app.js
+    async function syncFromSheets() {
+        return sync();
     }
 
     // ── CRUD ──
@@ -154,24 +241,16 @@ const DB = (function() {
         data.push(item);
         saveData(collection, data);
 
-        // Sincronizar con Sheets
-        if (isOnline()) {
-            try {
-                const result = await _fetchPost({
-                    action: 'add',
-                    sheet: collectionToSheet(collection),
-                    data: item
-                });
-                if (result.success && result.id) {
-                    // Si el server asignó otro ID, actualizar
-                    if (result.id !== item.id) {
-                        item.id = result.id;
-                        saveData(collection, data);
-                    }
-                }
-            } catch(err) {
-                console.warn('Error enviando a Sheets (guardado local OK):', err);
+        // Sincronizar con Supabase
+        try {
+            const saved = await _supabasePost(collection, item);
+            // Si Supabase devolvió un ID diferente, actualizar
+            if (saved.id && saved.id !== item.id) {
+                item.id = saved.id;
+                saveData(collection, data);
             }
+        } catch(err) {
+            console.warn('Error enviando a Supabase (guardado local OK):', err);
         }
 
         return item;
@@ -185,18 +264,11 @@ const DB = (function() {
         Object.assign(data[idx], updates);
         saveData(collection, data);
 
-        // Sincronizar con Sheets
-        if (isOnline()) {
-            try {
-                await _fetchPost({
-                    action: 'update',
-                    sheet: collectionToSheet(collection),
-                    id: id,
-                    data: updates
-                });
-            } catch(err) {
-                console.warn('Error actualizando en Sheets (guardado local OK):', err);
-            }
+        // Sincronizar con Supabase
+        try {
+            await _supabasePatch(collection, id, updates);
+        } catch(err) {
+            console.warn('Error actualizando en Supabase (guardado local OK):', err);
         }
 
         return data[idx];
@@ -209,17 +281,11 @@ const DB = (function() {
         if (filtered.length === data.length) return false;
         saveData(collection, filtered);
 
-        // Sincronizar con Sheets
-        if (isOnline()) {
-            try {
-                await _fetchPost({
-                    action: 'delete',
-                    sheet: collectionToSheet(collection),
-                    id: id
-                });
-            } catch(err) {
-                console.warn('Error eliminando en Sheets (guardado local OK):', err);
-            }
+        // Sincronizar con Supabase
+        try {
+            await _supabaseDelete(collection, id);
+        } catch(err) {
+            console.warn('Error eliminando en Supabase (guardado local OK):', err);
         }
 
         return true;
@@ -274,11 +340,6 @@ const DB = (function() {
                     }
                     // Guardar localmente
                     COLLECTIONS.forEach(col => saveData(col, data[col]));
-
-                    // Si está online, sincronizar cada registro
-                    // (No sincronizamos masivamente por ahora, solo local)
-                    // Se puede hacer sync manual después
-
                     resolve(data);
                 } catch(err) {
                     reject(new Error('Error parseando JSON: ' + err.message));
@@ -297,38 +358,22 @@ const DB = (function() {
     }
 
     async function loadSampleData() {
-        const isEmpty = COLLECTIONS.every(col => getData(col).length === 0);
-        if (!isEmpty) return false;
-
-        try {
-            const res = await fetch('data/sample-data.json');
-            if (!res.ok) throw new Error('No se pudo cargar sample-data.json');
-            const data = await res.json();
-            COLLECTIONS.forEach(col => {
-                if (Array.isArray(data[col])) {
-                    saveData(col, data[col]);
-                }
-            });
-            return true;
-        } catch(err) {
-            console.error('Error cargando datos de ejemplo:', err);
-            return false;
-        }
+        // No necesaria — datos se cargan via SQL en Supabase
+        return Promise.resolve(false);
     }
 
-    // ── Configuración de URL ──
+    // ── Configuración (compatibilidad) ──
 
-    function setAppsScriptUrl(url) {
-        APPS_SCRIPT_URL = url;
-        localStorage.setItem('inv_apps_script_url', url);
+    function setAppsScriptUrl() {
+        // No-op — Supabase no necesita configuración dinámica de URL
     }
 
     function getAppsScriptUrl() {
-        return APPS_SCRIPT_URL;
+        return SUPABASE_URL;
     }
 
     function isConnected() {
-        return isOnline();
+        return true;
     }
 
     // ── API pública ──
@@ -336,17 +381,18 @@ const DB = (function() {
     return {
         getData,
         saveData,
-        addItem,         // ahora async
-        updateItem,      // ahora async
-        deleteItem,      // ahora async
+        addItem,
+        updateItem,
+        deleteItem,
         getById,
         filter,
         exportJSON,
         importJSON,
         clearAll,
-        loadSampleData,  // async
+        loadSampleData,
         getNextId,
-        syncFromSheets,  // async — descarga todo desde Google Sheets
+        sync,
+        syncFromSheets,
         setAppsScriptUrl,
         getAppsScriptUrl,
         isConnected
