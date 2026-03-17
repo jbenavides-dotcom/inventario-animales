@@ -35,22 +35,38 @@ var App = (function () {
     initSheetsConnection();
 
     // Si hay conexion a Sheets, sincronizar primero
+    // Asegurar que initPage se ejecute siempre, incluso si sync falla
+    var pageInitialized = false;
+    function safeInitPage() {
+      if (pageInitialized) return;
+      pageInitialized = true;
+      initPage();
+    }
+
+    // Timeout de seguridad: si sync tarda más de 5s, inicializar igual
+    setTimeout(safeInitPage, 5000);
+
     if (DB.isConnected()) {
       updateConnectionStatus(true);
       DB.syncFromSheets().then(function(synced) {
         if (synced) {
           Utils.showToast('Sincronizado con Google Sheets', 'success');
         }
-        initPage();
+        safeInitPage();
+      }).catch(function(err) {
+        console.error('Error sync:', err);
+        safeInitPage();
       });
     } else {
       updateConnectionStatus(false);
-      // Cargar datos de ejemplo si esta vacio
       DB.loadSampleData().then(function (loaded) {
         if (loaded) {
           Utils.showToast('Datos de ejemplo cargados', 'info');
         }
-        initPage();
+        safeInitPage();
+      }).catch(function(err) {
+        console.error('Error loadSample:', err);
+        safeInitPage();
       });
     }
   }
@@ -1719,6 +1735,7 @@ var App = (function () {
     toggleSidebar: toggleSidebar,
     initExportImport: initExportImport,
     handleImport: handleImport,
+    exportData: function() { DB.exportJSON(); Utils.showToast('Backup exportado', 'success'); },
     initDashboard: initDashboard,
     initInventario: initInventario,
     initOrdenes: initOrdenes,
