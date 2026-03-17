@@ -11,19 +11,20 @@ const DB = (function() {
     // ============================================
     // CONFIGURACIÓN — Pegar aquí la URL del Apps Script
     // ============================================
-    let APPS_SCRIPT_URL = 'https://script.google.com/a/macros/lapalmayeltucan.com/s/AKfycbw-RENo140IRTKUfePQcrwBoKjR0whQGsD308wpwGFnICp0W1VFIxNiiE6Seb6gB4dxxA/exec';
+    let APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxwKiUh0b3jQFyjSfvGTuGkXv7X3EQywgZYndPovAUl-lYlvmsjW42WJ89IgEt3ZuxR/exec';
 
     // Intentar leer URL guardada en localStorage
     const savedUrl = localStorage.getItem('inv_apps_script_url');
     if (savedUrl) APPS_SCRIPT_URL = savedUrl;
 
-    const COLLECTIONS = ['animales', 'ordenes', 'actividades', 'costos'];
+    const COLLECTIONS = ['animales', 'ordenes', 'actividades', 'costos', 'huevos'];
 
     const PREFIXES = {
         animales: 'ANI',
         ordenes: 'ORD',
         actividades: 'ACT',
-        costos: 'COS'
+        costos: 'COS',
+        huevos: 'HUE'
     };
 
     // Cache local
@@ -31,7 +32,8 @@ const DB = (function() {
         animales: null,
         ordenes: null,
         actividades: null,
-        costos: null
+        costos: null,
+        huevos: null
     };
     let _cacheTimestamp = 0;
     const CACHE_TTL = 30000; // 30 segundos

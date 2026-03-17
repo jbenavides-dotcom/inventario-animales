@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manejo y Salud — Inventario LP&ET</title>
+    <title>Conteo de Huevos — Inventario LP&ET</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="assets/css/style.css">
 </head>
-<body data-page="salud">
+<body data-page="huevos">
     <div class="app-layout">
         <!-- SIDEBAR -->
         <aside class="sidebar" id="sidebar">
@@ -30,7 +30,7 @@
                     <span class="nav-icon">💰</span>
                     <span class="nav-label">Compras/Ventas</span>
                 </a>
-                <a href="salud.html" class="sidebar-nav-item active" data-page="salud">
+                <a href="salud.html" class="sidebar-nav-item" data-page="salud">
                     <span class="nav-icon">💉</span>
                     <span class="nav-label">Salud</span>
                 </a>
@@ -38,7 +38,7 @@
                     <span class="nav-icon">📋</span>
                     <span class="nav-label">Costos</span>
                 </a>
-                <a href="huevos.html" class="sidebar-nav-item" data-page="huevos">
+                <a href="huevos.html" class="sidebar-nav-item active" data-page="huevos">
                     <span class="nav-icon">🥚</span>
                     <span class="nav-label">Huevos</span>
                 </a>
@@ -59,31 +59,82 @@
             <a href="index.html" class="bottom-nav-item"><span>📊</span><span>Dashboard</span></a>
             <a href="inventario.html" class="bottom-nav-item"><span>🐾</span><span>Inventario</span></a>
             <a href="ordenes.html" class="bottom-nav-item"><span>💰</span><span>Compras</span></a>
-            <a href="salud.html" class="bottom-nav-item active"><span>💉</span><span>Salud</span></a>
+            <a href="salud.html" class="bottom-nav-item"><span>💉</span><span>Salud</span></a>
             <a href="costos.html" class="bottom-nav-item"><span>📋</span><span>Costos</span></a>
-            <a href="huevos.html" class="bottom-nav-item"><span>🥚</span><span>Huevos</span></a>
+            <a href="huevos.html" class="bottom-nav-item active"><span>🥚</span><span>Huevos</span></a>
         </nav>
 
         <!-- MAIN CONTENT -->
         <main class="main-content">
             <div class="page-header">
-                <h1>Manejo y Salud</h1>
-                <button class="btn btn-primary" id="btn-add-actividad">+ Nueva Actividad</button>
+                <h1>Conteo de Huevos</h1>
+                <button class="btn btn-primary" id="btnAddHuevo">+ Registrar Conteo</button>
             </div>
 
             <div class="filter-bar">
-                <select class="form-select" id="filter-tipo-actividad">
-                    <option value="">Todas las actividades</option>
+                <input type="text" class="form-control search-input" id="searchHuevos" placeholder="Buscar por ubicación u observación...">
+                <select class="form-select" id="filterMesHuevos">
+                    <option value="">Todos los meses</option>
                 </select>
-                <select class="form-select" id="filter-animal-actividad">
-                    <option value="">Todos los animales</option>
-                </select>
-                <select class="form-select" id="filter-estado-actividad">
-                    <option value="">Todos los estados</option>
+                <select class="form-select" id="filterUbicacionHuevos">
+                    <option value="">Todas las ubicaciones</option>
                 </select>
             </div>
 
-            <div class="card" id="salud-table"></div>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <span class="stat-icon">🥚</span>
+                    <div class="stat-info">
+                        <span class="stat-value" id="statHuevosHoy">0</span>
+                        <span class="stat-label">Huevos Hoy</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-icon">📅</span>
+                    <div class="stat-info">
+                        <span class="stat-value" id="statHuevosSemana">0</span>
+                        <span class="stat-label">Huevos Esta Semana</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-icon">📊</span>
+                    <div class="stat-info">
+                        <span class="stat-value" id="statHuevosMes">0</span>
+                        <span class="stat-label">Huevos Este Mes</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-icon">📈</span>
+                    <div class="stat-info">
+                        <span class="stat-value" id="statPromedioDiario">0</span>
+                        <span class="stat-label">Promedio Diario</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="table-responsive">
+                    <table class="data-table" id="tablaHuevos">
+                        <thead id="theadHuevos">
+                            <tr>
+                                <th>Fecha</th><th>Cantidad</th><th>Rotos</th><th>Buenos</th>
+                                <th>Ubicación</th><th>Observaciones</th><th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbodyHuevos"></tbody>
+                    </table>
+                </div>
+                <div class="empty-state" id="emptyHuevos" style="display:none">
+                    <span style="font-size:3rem">🥚</span>
+                    <p>No hay registros de huevos</p>
+                    <button class="btn btn-primary" onclick="document.getElementById('btnAddHuevos').click()">Registrar primer conteo</button>
+                </div>
+            </div>
+
+            <div class="card" style="margin-top:1.5rem">
+                <h3 style="margin-bottom:1rem">Producción Diaria</h3>
+                <canvas id="chart-huevos-diario"></canvas>
+            </div>
         </main>
     </div>
 

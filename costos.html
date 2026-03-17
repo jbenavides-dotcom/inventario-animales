@@ -38,6 +38,10 @@
                     <span class="nav-icon">📋</span>
                     <span class="nav-label">Costos</span>
                 </a>
+                <a href="huevos.html" class="sidebar-nav-item" data-page="huevos">
+                    <span class="nav-icon">🥚</span>
+                    <span class="nav-label">Huevos</span>
+                </a>
             </nav>
             <div class="sidebar-footer">
                 <div class="export-import-bar">
@@ -57,20 +61,21 @@
             <a href="ordenes.html" class="bottom-nav-item"><span>💰</span><span>Compras</span></a>
             <a href="salud.html" class="bottom-nav-item"><span>💉</span><span>Salud</span></a>
             <a href="costos.html" class="bottom-nav-item active"><span>📋</span><span>Costos</span></a>
+            <a href="huevos.html" class="bottom-nav-item"><span>🥚</span><span>Huevos</span></a>
         </nav>
 
         <!-- MAIN CONTENT -->
         <main class="main-content">
             <div class="page-header">
                 <h1>Costos Operativos</h1>
-                <button class="btn btn-primary" id="btnAddCosto">+ Nuevo Costo</button>
+                <button class="btn btn-primary" id="btn-add-costo">+ Nuevo Costo</button>
             </div>
 
             <div class="stats-grid" style="margin-bottom:1.5rem">
                 <div class="stat-card">
                     <div class="stat-icon" style="background:#ffebee;color:#c62828">📋</div>
                     <div class="stat-info">
-                        <span class="stat-number" id="costoMesActual">$0</span>
+                        <span class="stat-number" id="costos-mes-total">$0</span>
                         <span class="stat-label">Costos este mes</span>
                     </div>
                 </div>
@@ -84,13 +89,10 @@
             </div>
 
             <div class="filter-bar">
-                <select class="form-select" id="filterCategoriaCosto">
+                <select class="form-select" id="filter-categoria-costo">
                     <option value="">Todas las categorías</option>
-                    <option>Alimentación</option><option>Veterinario</option><option>Medicamento</option>
-                    <option>Herraje</option><option>Insumos</option><option>Transporte</option>
-                    <option>Infraestructura</option><option>Otro</option>
                 </select>
-                <input type="month" class="form-control" id="filterMesCosto">
+                <input type="month" class="form-control" id="filter-mes-costo">
             </div>
 
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:1.5rem" class="costos-charts-grid">
@@ -105,24 +107,7 @@
                 </div>
             </div>
 
-            <div class="card">
-                <div class="table-responsive">
-                    <table class="data-table" id="tablaCostos">
-                        <thead>
-                            <tr>
-                                <th>ID</th><th>Fecha</th><th>Categoría</th><th>Descripción</th>
-                                <th>Animales</th><th>Proveedor</th><th>Total</th><th>Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tbodyCostos"></tbody>
-                    </table>
-                </div>
-                <div class="empty-state" id="emptyCostos" style="display:none">
-                    <span style="font-size:3rem">📋</span>
-                    <p>No hay costos registrados</p>
-                    <button class="btn btn-primary" onclick="document.getElementById('btnAddCosto').click()">Registrar primer costo</button>
-                </div>
-            </div>
+            <div class="card" id="costos-table"></div>
         </main>
     </div>
 

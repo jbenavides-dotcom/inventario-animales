@@ -61,6 +61,7 @@ var App = (function () {
     if (path.indexOf('ordenes') !== -1) return 'ordenes';
     if (path.indexOf('salud') !== -1) return 'salud';
     if (path.indexOf('costos') !== -1) return 'costos';
+    if (path.indexOf('huevos') !== -1) return 'huevos';
     return 'dashboard';
   }
 
@@ -71,6 +72,7 @@ var App = (function () {
       case 'ordenes':     initOrdenes(); break;
       case 'salud':       initSalud(); break;
       case 'costos':      initCostos(); break;
+      case 'huevos':      initHuevos(); break;
     }
   }
 
@@ -1428,6 +1430,285 @@ var App = (function () {
   }
 
   // ══════════════════════════════════════════
+  //  HUEVOS (Conteo diario)
+  // ══════════════════════════════════════════
+
+  function initHuevos() {
+    renderHuevosStats();
+    renderHuevosTable();
+
+    var btnAdd = document.getElementById('btnAddHuevo');
+    if (btnAdd) {
+      btnAdd.addEventListener('click', function() {
+        showHuevoModal();
+      });
+    }
+
+    // Filtros
+    var searchInput = document.getElementById('searchHuevos');
+    if (searchInput) {
+      searchInput.addEventListener('input', function() { renderHuevosTable(); });
+    }
+    var filterMes = document.getElementById('filterMesHuevos');
+    if (filterMes) {
+      filterMes.addEventListener('change', function() { renderHuevosTable(); });
+    }
+    var filterUbicacion = document.getElementById('filterUbicacionHuevos');
+    if (filterUbicacion) {
+      filterUbicacion.addEventListener('change', function() { renderHuevosTable(); });
+    }
+
+    // Grafico
+    renderHuevosChart();
+  }
+
+  function getHuevosFiltered() {
+    var data = DB.getData('huevos') || [];
+    var search = (document.getElementById('searchHuevos') || {}).value || '';
+    var filterMes = (document.getElementById('filterMesHuevos') || {}).value || '';
+    var filterUbicacion = (document.getElementById('filterUbicacionHuevos') || {}).value || '';
+
+    return data.filter(function(h) {
+      var matchSearch = !search ||
+        (h.observaciones || '').toLowerCase().indexOf(search.toLowerCase()) !== -1 ||
+        (h.ubicacion || '').toLowerCase().indexOf(search.toLowerCase()) !== -1;
+      var matchMes = !filterMes || (h.fecha || '').substring(0, 7) === filterMes;
+      var matchUbicacion = !filterUbicacion || h.ubicacion === filterUbicacion;
+      return matchSearch && matchMes && matchUbicacion;
+    }).sort(function(a, b) {
+      return (b.fecha || '').localeCompare(a.fecha || '');
+    });
+  }
+
+  function renderHuevosStats() {
+    var data = DB.getData('huevos') || [];
+    var hoy = new Date().toISOString().slice(0, 10);
+    var inicioSemana = new Date();
+    inicioSemana.setDate(inicioSemana.getDate() - inicioSemana.getDay());
+    var semanaStr = inicioSemana.toISOString().slice(0, 10);
+    var mesStr = hoy.substring(0, 7);
+
+    var huevosHoy = 0, huevosSemana = 0, huevosMes = 0, diasMes = 0;
+    var diasUnicos = {};
+
+    data.forEach(function(h) {
+      var buenos = (parseInt(h.cantidad) || 0) - (parseInt(h.rotos) || 0);
+      if (h.fecha === hoy) huevosHoy += buenos;
+      if (h.fecha >= semanaStr) huevosSemana += buenos;
+      if ((h.fecha || '').substring(0, 7) === mesStr) {
+        huevosMes += buenos;
+        diasUnicos[h.fecha] = true;
+      }
+    });
+
+    diasMes = Object.keys(diasUnicos).length || 1;
+
+    var elHoy = document.getElementById('statHuevosHoy');
+    var elSemana = document.getElementById('statHuevosSemana');
+    var elMes = document.getElementById('statHuevosMes');
+    var elPromedio = document.getElementById('statPromedioDiario');
+
+    if (elHoy) elHoy.textContent = huevosHoy;
+    if (elSemana) elSemana.textContent = huevosSemana;
+    if (elMes) elMes.textContent = huevosMes;
+    if (elPromedio) elPromedio.textContent = Math.round(huevosMes / diasMes);
+  }
+
+  function renderHuevosTable() {
+    var tbody = document.getElementById('tbodyHuevos');
+    var emptyState = document.getElementById('emptyHuevos');
+    if (!tbody) return;
+
+    var data = getHuevosFiltered();
+
+    if (data.length === 0) {
+      tbody.innerHTML = '';
+      if (emptyState) emptyState.style.display = 'block';
+      return;
+    }
+    if (emptyState) emptyState.style.display = 'none';
+
+    var html = '';
+    data.forEach(function(h) {
+      var buenos = (parseInt(h.cantidad) || 0) - (parseInt(h.rotos) || 0);
+      html += '<tr>' +
+        '<td>' + Utils.formatDate(h.fecha) + '</td>' +
+        '<td><strong>' + (h.cantidad || 0) + '</strong></td>' +
+        '<td>' + (h.rotos || 0) + '</td>' +
+        '<td class="text-success font-bold">' + buenos + '</td>' +
+        '<td>' + (h.ubicacion || '-') + '</td>' +
+        '<td>' + (h.observaciones || '-') + '</td>' +
+        '<td class="actions-cell">' +
+          '<button class="btn btn-sm btn-ghost" onclick="App.editHuevo(\'' + h.id + '\')" title="Editar">&#9999;&#65039;</button>' +
+          '<button class="btn btn-sm btn-ghost text-danger" onclick="App.deleteHuevo(\'' + h.id + '\')" title="Eliminar">&#128465;&#65039;</button>' +
+        '</td>' +
+      '</tr>';
+    });
+    tbody.innerHTML = html;
+  }
+
+  function showHuevoModal(editId) {
+    var item = editId ? DB.getById('huevos', editId) : null;
+    var isEdit = !!item;
+    var title = isEdit ? 'Editar Conteo' : 'Registrar Conteo de Huevos';
+
+    var today = new Date().toISOString().slice(0, 10);
+
+    var formHtml = '<form id="huevoForm">' +
+      '<div class="form-row">' +
+        '<div class="form-group">' +
+          '<label class="form-label">Fecha *</label>' +
+          '<input type="date" class="form-control" name="fecha" value="' + (item ? item.fecha : today) + '" required>' +
+        '</div>' +
+        '<div class="form-group">' +
+          '<label class="form-label">Cantidad Total *</label>' +
+          '<input type="number" class="form-control" name="cantidad" min="0" value="' + (item ? item.cantidad : '') + '" placeholder="Ej: 15" required>' +
+        '</div>' +
+      '</div>' +
+      '<div class="form-row">' +
+        '<div class="form-group">' +
+          '<label class="form-label">Huevos Rotos</label>' +
+          '<input type="number" class="form-control" name="rotos" min="0" value="' + (item ? (item.rotos || 0) : '0') + '" placeholder="0">' +
+        '</div>' +
+        '<div class="form-group">' +
+          '<label class="form-label">Ubicacion</label>' +
+          '<select class="form-select" name="ubicacion">' +
+            '<option value="Gallinero"' + (item && item.ubicacion === 'Gallinero' ? ' selected' : '') + '>Gallinero</option>' +
+            '<option value="Gallinero 2"' + (item && item.ubicacion === 'Gallinero 2' ? ' selected' : '') + '>Gallinero 2</option>' +
+            '<option value="Libre pastoreo"' + (item && item.ubicacion === 'Libre pastoreo' ? ' selected' : '') + '>Libre pastoreo</option>' +
+            '<option value="Otro"' + (item && item.ubicacion === 'Otro' ? ' selected' : '') + '>Otro</option>' +
+          '</select>' +
+        '</div>' +
+      '</div>' +
+      '<div class="form-group">' +
+        '<label class="form-label">Observaciones</label>' +
+        '<textarea class="form-control" name="observaciones" rows="2" placeholder="Notas adicionales...">' + (item ? (item.observaciones || '') : '') + '</textarea>' +
+      '</div>' +
+    '</form>';
+
+    var modalHtml = '<div class="modal-overlay" onclick="if(event.target===this)this.remove()">' +
+      '<div class="modal-content">' +
+        '<div class="modal-header">' +
+          '<h3>' + title + '</h3>' +
+          '<button class="modal-close" onclick="this.closest(\'.modal-overlay\').remove()">&times;</button>' +
+        '</div>' +
+        '<div class="modal-body">' + formHtml + '</div>' +
+        '<div class="modal-footer">' +
+          '<button class="btn btn-secondary" onclick="this.closest(\'.modal-overlay\').remove()">Cancelar</button>' +
+          '<button class="btn btn-primary" id="btnSaveHuevo">' + (isEdit ? 'Guardar' : 'Registrar') + '</button>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+
+    var container = document.getElementById('modalContainer');
+    container.innerHTML = modalHtml;
+
+    document.getElementById('btnSaveHuevo').addEventListener('click', function() {
+      var form = document.getElementById('huevoForm');
+      var formData = {
+        fecha: form.fecha.value,
+        cantidad: parseInt(form.cantidad.value) || 0,
+        rotos: parseInt(form.rotos.value) || 0,
+        ubicacion: form.ubicacion.value,
+        observaciones: form.observaciones.value
+      };
+
+      if (!formData.fecha || !formData.cantidad) {
+        Utils.showToast('Fecha y cantidad son obligatorios', 'error');
+        return;
+      }
+
+      if (isEdit) {
+        DB.updateItem('huevos', editId, formData).then(function() {
+          Utils.showToast('Conteo actualizado', 'success');
+          container.innerHTML = '';
+          renderHuevosStats();
+          renderHuevosTable();
+          renderHuevosChart();
+        });
+      } else {
+        DB.addItem('huevos', formData).then(function() {
+          Utils.showToast('Conteo registrado', 'success');
+          container.innerHTML = '';
+          renderHuevosStats();
+          renderHuevosTable();
+          renderHuevosChart();
+        });
+      }
+    });
+  }
+
+  function editHuevo(id) {
+    showHuevoModal(id);
+  }
+
+  function deleteHuevo(id) {
+    if (!confirm('¿Eliminar este registro de huevos?')) return;
+    DB.deleteItem('huevos', id).then(function() {
+      Utils.showToast('Registro eliminado', 'success');
+      renderHuevosStats();
+      renderHuevosTable();
+      renderHuevosChart();
+    });
+  }
+
+  function renderHuevosChart() {
+    var canvas = document.getElementById('chart-huevos-diario');
+    if (!canvas || typeof Chart === 'undefined') return;
+
+    var data = DB.getData('huevos') || [];
+    // Ultimos 30 dias
+    var dias = {};
+    var hoy = new Date();
+    for (var i = 29; i >= 0; i--) {
+      var d = new Date(hoy);
+      d.setDate(d.getDate() - i);
+      var key = d.toISOString().slice(0, 10);
+      dias[key] = 0;
+    }
+
+    data.forEach(function(h) {
+      if (dias[h.fecha] !== undefined) {
+        dias[h.fecha] += (parseInt(h.cantidad) || 0) - (parseInt(h.rotos) || 0);
+      }
+    });
+
+    var labels = Object.keys(dias).map(function(d) { return d.slice(5); }); // MM-DD
+    var values = Object.values(dias);
+
+    // Destroy existing chart if any
+    if (canvas._chartInstance) {
+      canvas._chartInstance.destroy();
+    }
+
+    canvas._chartInstance = new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Huevos buenos',
+          data: values,
+          backgroundColor: 'rgba(45, 90, 61, 0.6)',
+          borderColor: '#2D5A3D',
+          borderWidth: 1,
+          borderRadius: 4
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false }
+        },
+        scales: {
+          y: { beginAtZero: true, ticks: { stepSize: 1 } },
+          x: { ticks: { maxRotation: 45, font: { size: 10 } } }
+        }
+      }
+    });
+  }
+
+  // ══════════════════════════════════════════
   //  API PUBLICA
   // ══════════════════════════════════════════
 
@@ -1463,6 +1744,8 @@ var App = (function () {
     deleteOrdenRecord: deleteOrdenRecord,
     deleteActividadRecord: deleteActividadRecord,
     deleteCostoRecord: deleteCostoRecord,
+    editHuevo: editHuevo,
+    deleteHuevo: deleteHuevo,
     getStats: getStats,
   };
 })();

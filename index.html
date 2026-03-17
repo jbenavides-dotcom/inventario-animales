@@ -38,6 +38,10 @@
                     <span class="nav-icon">📋</span>
                     <span class="nav-label">Costos</span>
                 </a>
+                <a href="huevos.html" class="sidebar-nav-item" data-page="huevos">
+                    <span class="nav-icon">🥚</span>
+                    <span class="nav-label">Huevos</span>
+                </a>
             </nav>
             <div class="sidebar-footer">
                 <div class="export-import-bar">
@@ -57,6 +61,7 @@
             <a href="ordenes.html" class="bottom-nav-item"><span>💰</span><span>Compras</span></a>
             <a href="salud.html" class="bottom-nav-item"><span>💉</span><span>Salud</span></a>
             <a href="costos.html" class="bottom-nav-item"><span>📋</span><span>Costos</span></a>
+            <a href="huevos.html" class="bottom-nav-item"><span>🥚</span><span>Huevos</span></a>
         </nav>
 
         <!-- MAIN CONTENT -->
@@ -69,42 +74,10 @@
             </div>
 
             <!-- Stats Cards -->
-            <div class="stats-grid" id="statsGrid">
-                <div class="stat-card">
-                    <div class="stat-icon" style="background:#e8f5e9;color:#2D5A3D">🐄</div>
-                    <div class="stat-info">
-                        <span class="stat-number" id="statAnimales">0</span>
-                        <span class="stat-label">Animales Activos</span>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon" style="background:#fff3e0;color:#8B6914">💰</div>
-                    <div class="stat-info">
-                        <span class="stat-number" id="statInversion">$0</span>
-                        <span class="stat-label">Inversión Total</span>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon" style="background:#e3f2fd;color:#1565c0">📈</div>
-                    <div class="stat-info">
-                        <span class="stat-number" id="statVentas">$0</span>
-                        <span class="stat-label">Ingresos Ventas</span>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon" style="background:#ffebee;color:#c62828">📋</div>
-                    <div class="stat-info">
-                        <span class="stat-number" id="statCostos">$0</span>
-                        <span class="stat-label">Costos del Mes</span>
-                    </div>
-                </div>
-            </div>
+            <div class="stats-grid" id="stat-cards"></div>
 
             <!-- Alertas -->
-            <div class="alerts-section" id="alertsSection">
-                <h2>Alertas</h2>
-                <div class="alerts-grid" id="alertsGrid"></div>
-            </div>
+            <div id="alertas"></div>
 
             <!-- Charts Grid -->
             <div class="charts-grid">

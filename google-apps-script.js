@@ -39,6 +39,9 @@ var SHEET_CONFIG = {
     'ID', 'Fecha', 'Categoria', 'Descripcion', 'Animales', 'Proveedor',
     'Cantidad', 'Unidad', 'ValorUnitario', 'Total', 'MetodoPago', 'Factura',
     'Observaciones'
+  ],
+  Huevos: [
+    'ID', 'Fecha', 'Cantidad', 'Rotos', 'Ubicacion', 'Observaciones'
   ]
 };
 
@@ -46,7 +49,8 @@ var ID_PREFIXES = {
   Animales: 'ANI',
   Ordenes: 'ORD',
   Actividades: 'ACT',
-  Costos: 'COS'
+  Costos: 'COS',
+  Huevos: 'HUE'
 };
 
 // =============================================
@@ -147,6 +151,19 @@ function loadSampleData() {
   ];
   appendData(ss, 'Costos', costosData);
 
+  // --- Huevos ---
+  var huevosData = [
+    ['HUE-001', '2026-03-10', 12, 1, 'Gallinero', 'Buen día de producción'],
+    ['HUE-002', '2026-03-11', 15, 0, 'Gallinero', ''],
+    ['HUE-003', '2026-03-12', 10, 2, 'Gallinero', 'Gallina enferma, producción baja'],
+    ['HUE-004', '2026-03-13', 14, 0, 'Gallinero', ''],
+    ['HUE-005', '2026-03-14', 16, 1, 'Gallinero', 'Récord del mes'],
+    ['HUE-006', '2026-03-15', 13, 0, 'Gallinero', ''],
+    ['HUE-007', '2026-03-16', 11, 1, 'Gallinero', ''],
+    ['HUE-008', '2026-03-17', 14, 0, 'Gallinero', 'Día nublado']
+  ];
+  appendData(ss, 'Huevos', huevosData);
+
   Logger.log('loadSampleData() completado. Datos de ejemplo cargados.');
 }
 
@@ -179,7 +196,8 @@ function doGet(e) {
           animales: getSheetData('Animales'),
           ordenes: getSheetData('Ordenes'),
           actividades: getSheetData('Actividades'),
-          costos: getSheetData('Costos')
+          costos: getSheetData('Costos'),
+          huevos: getSheetData('Huevos')
         }
       };
     } else if (action === 'get') {
