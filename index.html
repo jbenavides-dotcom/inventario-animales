@@ -68,9 +68,6 @@
         <main class="main-content">
             <div class="page-header">
                 <h1>Dashboard</h1>
-                <div class="page-actions">
-                    <button class="btn btn-primary" onclick="DB.loadSampleData().then(() => location.reload())">Cargar datos ejemplo</button>
-                </div>
             </div>
 
             <!-- Stats Cards -->
@@ -78,6 +75,33 @@
 
             <!-- Alertas -->
             <div id="alertas"></div>
+
+            <!-- Acciones Rápidas -->
+            <div class="quick-actions-section">
+                <h2 class="quick-actions-title">Acciones Rápidas</h2>
+                <div class="quick-actions-grid">
+                    <a href="huevos.html?action=addHuevo" class="quick-action-card quick-action-huevos">
+                        <span class="quick-action-icon">🥚</span>
+                        <span class="quick-action-label">Registrar Huevos Hoy</span>
+                        <span class="quick-action-desc">Anotar producción diaria</span>
+                    </a>
+                    <a href="inventario.html" class="quick-action-card quick-action-animal">
+                        <span class="quick-action-icon">🐾</span>
+                        <span class="quick-action-label">Nuevo Animal</span>
+                        <span class="quick-action-desc">Agregar al inventario</span>
+                    </a>
+                    <a href="costos.html" class="quick-action-card quick-action-costo">
+                        <span class="quick-action-icon">📋</span>
+                        <span class="quick-action-label">Registrar Costo</span>
+                        <span class="quick-action-desc">Alimentación, vet, insumos</span>
+                    </a>
+                    <a href="salud.html" class="quick-action-card quick-action-salud">
+                        <span class="quick-action-icon">💉</span>
+                        <span class="quick-action-label">Actividad de Salud</span>
+                        <span class="quick-action-desc">Vacuna, tratamiento, revisión</span>
+                    </a>
+                </div>
+            </div>
 
             <!-- Charts Grid -->
             <div class="charts-grid">

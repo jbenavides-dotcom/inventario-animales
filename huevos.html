@@ -112,6 +112,40 @@
                 </div>
             </div>
 
+            <!-- Registro Rápido de Huevos -->
+            <div class="card quick-add-card">
+                <div class="quick-add-header">
+                    <span class="quick-add-title">⚡ Registro Rápido</span>
+                    <span class="quick-add-subtitle">Guarda el conteo de hoy sin abrir modal</span>
+                </div>
+                <form class="quick-add-form" id="quickAddHuevoForm">
+                    <div class="quick-add-field">
+                        <label class="quick-add-label">Fecha</label>
+                        <input type="date" class="form-control" id="qaFecha">
+                    </div>
+                    <div class="quick-add-field">
+                        <label class="quick-add-label">Cantidad *</label>
+                        <input type="number" class="form-control" id="qaCantidad" min="0" placeholder="Ej: 8">
+                    </div>
+                    <div class="quick-add-field">
+                        <label class="quick-add-label">Rotos</label>
+                        <input type="number" class="form-control" id="qaRotos" min="0" value="0" placeholder="0">
+                    </div>
+                    <div class="quick-add-field">
+                        <label class="quick-add-label">Ubicación</label>
+                        <select class="form-select" id="qaUbicacion">
+                            <option value="Gallinero">Gallinero</option>
+                            <option value="Gallinero 2">Gallinero 2</option>
+                            <option value="Libre pastoreo">Libre pastoreo</option>
+                            <option value="Otro">Otro</option>
+                        </select>
+                    </div>
+                    <button type="button" class="btn btn-primary quick-add-btn" onclick="App.quickAddHuevo()">
+                        Guardar
+                    </button>
+                </form>
+            </div>
+
             <div class="card">
                 <div class="table-responsive">
                     <table class="data-table" id="tablaHuevos">

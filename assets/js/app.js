@@ -13,7 +13,7 @@ var App = (function () {
   var TIPOS_ANIMAL = ['Bovino', 'Equino', 'Ave', 'Porcino', 'Canino', 'Felino', 'Caprino', 'Ovino', 'Otro'];
   var ESTADOS_ANIMAL = ['Activo', 'Vendido', 'Fallecido', 'En tratamiento', 'Cuarentena', 'Prestado'];
   var PROCEDENCIAS = ['Compra', 'Nacimiento', 'Donacion', 'Intercambio', 'Otro'];
-  var SEXOS = ['Macho', 'Hembra'];
+  var SEXOS = ['Macho', 'Hembra', 'Indeterminado'];
   var METODOS_PAGO = ['Efectivo', 'Transferencia', 'Cheque', 'Otro'];
   var ESTADOS_ORDEN = ['Pendiente', 'Completada', 'Cancelada'];
   var TIPOS_ORDEN = ['Compra', 'Venta'];
@@ -1453,6 +1453,12 @@ var App = (function () {
     renderHuevosStats();
     renderHuevosTable();
 
+    // Precargar fecha de hoy en el quick-add
+    var qaFecha = document.getElementById('qaFecha');
+    if (qaFecha) {
+      qaFecha.value = new Date().toISOString().slice(0, 10);
+    }
+
     var btnAdd = document.getElementById('btnAddHuevo');
     if (btnAdd) {
       btnAdd.addEventListener('click', function() {
@@ -1476,6 +1482,45 @@ var App = (function () {
 
     // Grafico
     renderHuevosChart();
+
+    // Auto-abrir modal si la URL trae ?action=addHuevo
+    var params = new URLSearchParams(window.location.search);
+    if (params.get('action') === 'addHuevo') {
+      setTimeout(function() { showHuevoModal(); }, 300);
+    }
+  }
+
+  // ── Quick-add de huevos (formulario inline en huevos.html) ──
+  function quickAddHuevo() {
+    var fecha    = (document.getElementById('qaFecha') || {}).value || '';
+    var cantidad = parseInt((document.getElementById('qaCantidad') || {}).value) || 0;
+    var rotos    = parseInt((document.getElementById('qaRotos')    || {}).value) || 0;
+    var ubicacion = (document.getElementById('qaUbicacion') || {}).value || 'Gallinero';
+
+    if (!fecha) {
+      Utils.showToast('La fecha es obligatoria', 'error');
+      return;
+    }
+    if (!cantidad || cantidad <= 0) {
+      Utils.showToast('Ingresa una cantidad válida', 'error');
+      return;
+    }
+
+    var formData = { fecha: fecha, cantidad: cantidad, rotos: rotos, ubicacion: ubicacion, observaciones: '' };
+
+    DB.addItem('huevos', formData).then(function() {
+      Utils.showToast('✅ ' + cantidad + ' huevos registrados', 'success');
+      // Limpiar campos del quick-add
+      var qaCantidad = document.getElementById('qaCantidad');
+      var qaRotos    = document.getElementById('qaRotos');
+      if (qaCantidad) qaCantidad.value = '';
+      if (qaRotos)    qaRotos.value    = '0';
+      renderHuevosStats();
+      renderHuevosTable();
+      renderHuevosChart();
+    }).catch(function(err) {
+      Utils.showToast('Error al guardar: ' + err, 'error');
+    });
   }
 
   function getHuevosFiltered() {
@@ -1763,6 +1808,7 @@ var App = (function () {
     deleteCostoRecord: deleteCostoRecord,
     editHuevo: editHuevo,
     deleteHuevo: deleteHuevo,
+    quickAddHuevo: quickAddHuevo,
     getStats: getStats,
   };
 })();
