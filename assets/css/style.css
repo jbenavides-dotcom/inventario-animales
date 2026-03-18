@@ -967,6 +967,239 @@ textarea.form-control {
 .justify-between { justify-content: space-between; }
 .hidden { display: none; }
 
+/* ─── KPI Cards mejoradas ─── */
+.stat-card.kpi-green {
+  background: linear-gradient(135deg, #f0fdf4 0%, #fff 100%);
+  border-left: 4px solid #16a34a;
+}
+.stat-card.kpi-blue {
+  background: linear-gradient(135deg, #eff6ff 0%, #fff 100%);
+  border-left: 4px solid #2563eb;
+}
+.stat-card.kpi-orange {
+  background: linear-gradient(135deg, #fff7ed 0%, #fff 100%);
+  border-left: 4px solid #ea580c;
+}
+.stat-card.kpi-yellow {
+  background: linear-gradient(135deg, #fefce8 0%, #fff 100%);
+  border-left: 4px solid #ca8a04;
+}
+.stat-card.kpi-purple {
+  background: linear-gradient(135deg, #faf5ff 0%, #fff 100%);
+  border-left: 4px solid #7c3aed;
+}
+
+.stat-card .stat-value {
+  font-size: 2.2rem;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--text);
+}
+
+/* ─── Resumen del Mes (Dashboard) ─── */
+.resumen-mes-section {
+  margin-bottom: 1.5rem;
+}
+
+.resumen-mes-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 1rem;
+}
+
+.resumen-mes-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.75rem;
+}
+
+.resumen-mes-card {
+  background: var(--card-bg);
+  border-radius: var(--radius-md);
+  box-shadow: var(--card-shadow);
+  padding: 1rem 1.25rem;
+  text-align: center;
+}
+
+.resumen-mes-card .resumen-label {
+  font-size: 0.78rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.35rem;
+  display: block;
+}
+
+.resumen-mes-card .resumen-value {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--text);
+  display: block;
+}
+
+.resumen-mes-card .resumen-value.positive { color: #16a34a; }
+.resumen-mes-card .resumen-value.negative { color: #dc2626; }
+.resumen-mes-card .resumen-value.neutral { color: #2563eb; }
+
+/* ─── Selector Mes (Costos) ─── */
+.mes-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.3rem 0.5rem;
+}
+
+.mes-nav-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.1rem;
+  color: var(--muted);
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+  transition: all var(--transition);
+  line-height: 1;
+}
+
+.mes-nav-btn:hover {
+  background: rgba(0,0,0,0.06);
+  color: var(--text);
+}
+
+.mes-nav-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
+  min-width: 130px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* ─── KPIs Costos ─── */
+.costos-kpis-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+/* ─── Paginación ─── */
+.pagination-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  border-top: 1px solid var(--border);
+  font-size: 0.85rem;
+  color: var(--muted);
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pagination-btn {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 0.35rem 0.85rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 0.82rem;
+  transition: all var(--transition);
+  font-family: inherit;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background: var(--table-hover-bg);
+  border-color: var(--primary);
+}
+
+.pagination-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.pagination-info {
+  font-size: 0.82rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+/* ─── Empty States mejorados ─── */
+.empty-state-friendly {
+  text-align: center;
+  padding: 3rem 2rem;
+}
+
+.empty-state-friendly .empty-icon-big {
+  font-size: 3.5rem;
+  margin-bottom: 1rem;
+  opacity: 0.7;
+}
+
+.empty-state-friendly h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 0.5rem;
+}
+
+.empty-state-friendly p {
+  font-size: 0.88rem;
+  color: var(--muted);
+  max-width: 380px;
+  margin: 0 auto 1.25rem;
+  line-height: 1.55;
+}
+
+/* ─── Resumen Ordenes ─── */
+.ordenes-resumen-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.ordenes-resumen-card {
+  background: var(--card-bg);
+  border-radius: var(--radius-md);
+  box-shadow: var(--card-shadow);
+  padding: 1.25rem;
+  text-align: center;
+}
+
+.ordenes-resumen-card .or-label {
+  font-size: 0.78rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.35rem;
+  display: block;
+}
+
+.ordenes-resumen-card .or-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  display: block;
+}
+
+/* ─── Conteo tabla ─── */
+.table-count {
+  font-size: 0.82rem;
+  color: var(--muted);
+  margin-bottom: 0.75rem;
+  padding: 0 0.25rem;
+}
+
 /* ─── Acciones Rápidas (Dashboard) ─── */
 .quick-actions-section {
   margin-bottom: 1.5rem;
@@ -1111,6 +1344,17 @@ textarea.form-control {
 }
 
 /* --- Animations --- */
+@keyframes modalIn {
+  from {
+    opacity: 0;
+    transform: translateY(-12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 @keyframes slideIn {
   from {
     transform: translateX(100%);
@@ -1158,6 +1402,13 @@ textarea.form-control {
 
   .quick-actions-grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* ─── Costos charts grid responsive ─── */
+@media (max-width: 900px) {
+  .costos-charts-grid {
+    grid-template-columns: 1fr !important;
   }
 }
 
@@ -1250,5 +1501,22 @@ textarea.form-control {
   .data-table th,
   .data-table td {
     padding: 0.5rem;
+  }
+
+  .resumen-mes-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .costos-kpis-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .ordenes-resumen-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Stats de huevos (6 cards) en mobile: 2 columnas */
+  .stats-grid[style*="repeat(3,1fr)"] {
+    grid-template-columns: repeat(2, 1fr) !important;
   }
 }

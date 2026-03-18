@@ -71,6 +71,22 @@
                 <button class="btn btn-primary" id="btn-add-orden">+ Nueva Orden</button>
             </div>
 
+            <!-- Resumen Compras/Ventas -->
+            <div class="ordenes-resumen-grid" id="ordenes-resumen-grid">
+                <div class="ordenes-resumen-card" style="border-left:4px solid #2563eb">
+                    <span class="or-label">Total Compras</span>
+                    <span class="or-value" id="or-total-compras" style="color:#2563eb">$0</span>
+                </div>
+                <div class="ordenes-resumen-card" style="border-left:4px solid #16a34a">
+                    <span class="or-label">Total Ventas</span>
+                    <span class="or-value" id="or-total-ventas" style="color:#16a34a">$0</span>
+                </div>
+                <div class="ordenes-resumen-card" style="border-left:4px solid #7c3aed">
+                    <span class="or-label">Ganancia / Pérdida</span>
+                    <span class="or-value" id="or-ganancia">$0</span>
+                </div>
+            </div>
+
             <div class="filter-bar">
                 <select class="form-select" id="filter-tipo-orden">
                     <option value="">Todas</option>

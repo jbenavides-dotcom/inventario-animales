@@ -316,21 +316,124 @@ var App = (function () {
     if (!container) return;
 
     var cards = [
-      { label: 'Animales Activos', value: stats.totalAnimales, icon: '🐄', color: '#059669' },
-      { label: 'Inversion Total', value: Utils.formatCOP(stats.totalInversion), icon: '💰', color: '#2563eb' },
-      { label: 'Ventas', value: Utils.formatCOP(stats.totalVentas), icon: '📈', color: '#7c3aed' },
-      { label: 'Costos del Mes', value: Utils.formatCOP(stats.costosMesActual), icon: '📊', color: '#dc2626' },
-      { label: 'Actividades Pendientes', value: stats.actividadesPendientes, icon: '⚕️', color: '#d97706' },
+      {
+        label: 'Animales Activos',
+        value: stats.totalAnimales,
+        icon: '🐄',
+        kpiClass: 'kpi-green',
+        iconBg: 'rgba(22,163,74,0.12)',
+        iconColor: '#16a34a'
+      },
+      {
+        label: 'Inversión Total',
+        value: Utils.formatCOP(stats.totalInversion),
+        icon: '💰',
+        kpiClass: 'kpi-blue',
+        iconBg: 'rgba(37,99,235,0.12)',
+        iconColor: '#2563eb'
+      },
+      {
+        label: 'Costos del Mes',
+        value: Utils.formatCOP(stats.costosMesActual),
+        icon: '📊',
+        kpiClass: 'kpi-orange',
+        iconBg: 'rgba(234,88,12,0.12)',
+        iconColor: '#ea580c'
+      },
+      {
+        label: 'Huevos Este Mes',
+        value: stats.huevosMes !== undefined ? stats.huevosMes : '—',
+        icon: '🥚',
+        kpiClass: 'kpi-yellow',
+        iconBg: 'rgba(202,138,4,0.12)',
+        iconColor: '#ca8a04',
+        sub: stats.promedioHuevosDia !== undefined ? (stats.promedioHuevosDia + ' / día') : ''
+      },
+      {
+        label: 'Actividades Pendientes',
+        value: stats.actividadesPendientes,
+        icon: '⚕️',
+        kpiClass: 'kpi-purple',
+        iconBg: 'rgba(124,58,237,0.12)',
+        iconColor: '#7c3aed'
+      },
     ];
 
     var html = '';
     cards.forEach(function (card) {
-      html += '<div class="stat-card">' +
-        '<div class="stat-icon" style="color:' + card.color + ';">' + card.icon + '</div>' +
+      html += '<div class="stat-card ' + card.kpiClass + '">' +
+        '<div class="stat-icon" style="width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex-shrink:0;background:' + card.iconBg + ';color:' + card.iconColor + ';">' + card.icon + '</div>' +
         '<div class="stat-info">' +
-          '<span class="stat-label">' + card.label + '</span>' +
           '<span class="stat-value">' + card.value + '</span>' +
+          '<span class="stat-label">' + card.label + '</span>' +
+          (card.sub ? '<span style="font-size:0.75rem;color:var(--muted);margin-top:2px;">' + card.sub + '</span>' : '') +
         '</div>' +
+      '</div>';
+    });
+    container.innerHTML = html;
+
+    // Renderizar resumen del mes debajo de KPIs
+    renderResumenMes(stats);
+  }
+
+  function renderResumenMes(stats) {
+    var container = document.getElementById('resumen-mes-grid');
+    if (!container) return;
+
+    var hoy = new Date();
+    var diaDelMes = hoy.getDate();
+    var diasEnMes = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0).getDate();
+    var MONTH_NAMES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+    var mesNombre = MONTH_NAMES[hoy.getMonth()];
+
+    var costoPorAnimal = stats.totalAnimales > 0
+      ? Math.round(stats.costosMesActual / stats.totalAnimales)
+      : 0;
+
+    var costoPorHuevo = (stats.huevosMes && stats.huevosMes > 0 && stats.costosMesActual > 0)
+      ? (stats.costosMesActual / stats.huevosMes).toFixed(0)
+      : null;
+
+    var margen = stats.totalVentas > 0
+      ? (stats.totalVentas - stats.costosMesActual)
+      : null;
+
+    var items = [
+      {
+        label: 'Huevos en ' + mesNombre,
+        value: (stats.huevosMes || 0).toString(),
+        cls: 'neutral'
+      },
+      {
+        label: 'Costos en ' + mesNombre,
+        value: Utils.formatCOP(stats.costosMesActual),
+        cls: ''
+      },
+      {
+        label: 'Costo por huevo',
+        value: costoPorHuevo ? Utils.formatCOP(costoPorHuevo) : '—',
+        cls: ''
+      },
+      {
+        label: 'Costo por animal',
+        value: costoPorAnimal > 0 ? Utils.formatCOP(costoPorAnimal) : '—',
+        cls: ''
+      },
+    ];
+
+    if (margen !== null) {
+      items.push({
+        label: 'Margen (ventas − costos)',
+        value: Utils.formatCOP(margen),
+        cls: margen >= 0 ? 'positive' : 'negative'
+      });
+    }
+
+    var html = '';
+    items.forEach(function (item) {
+      html += '<div class="resumen-mes-card">' +
+        '<span class="resumen-label">' + item.label + '</span>' +
+        '<span class="resumen-value ' + item.cls + '">' + item.value + '</span>' +
       '</div>';
     });
     container.innerHTML = html;
@@ -396,8 +499,44 @@ var App = (function () {
     }
   }
 
+  // Estado de paginacion del inventario
+  var _invPage = 1;
+  var _invData = null;
+  var _INV_PAGE_SIZE = 20;
+
   function renderInventarioTable(data) {
-    var animales = data || DB.getData('animales');
+    var animales = data !== undefined ? data : DB.getData('animales');
+    _invData = animales;
+    _invPage = 1; // reset a primera pagina al re-renderizar con nuevos datos
+    renderInventarioPaginated();
+  }
+
+  function renderInventarioPaginated() {
+    var animales = _invData || DB.getData('animales');
+    var total = animales.length;
+    var totalPages = Math.max(1, Math.ceil(total / _INV_PAGE_SIZE));
+    if (_invPage > totalPages) _invPage = totalPages;
+
+    var start = (_invPage - 1) * _INV_PAGE_SIZE;
+    var slice = animales.slice(start, start + _INV_PAGE_SIZE);
+
+    var container = document.getElementById('inventario-table');
+    if (!container) return;
+
+    if (total === 0) {
+      container.innerHTML = '<div class="empty-state-friendly">' +
+        '<div class="empty-icon-big">🐾</div>' +
+        '<h3>Sin animales registrados</h3>' +
+        '<p>Agrega tu primer animal al inventario.</p>' +
+        '<button class="btn btn-primary" onclick="document.getElementById(\'btn-add-animal\') && document.getElementById(\'btn-add-animal\').click()">+ Nuevo animal</button>' +
+      '</div>';
+      return;
+    }
+
+    // Conteo
+    var countHtml = '<div class="table-count">Mostrando ' + (start + 1) + '–' + Math.min(start + _INV_PAGE_SIZE, total) + ' de ' + total + ' animales</div>';
+
+    // Tabla
     var columns = [
       { key: 'id', label: 'ID' },
       { key: 'nombre', label: 'Nombre' },
@@ -409,12 +548,74 @@ var App = (function () {
       { key: 'estado', label: 'Estado', render: function (val) { return Utils.getStatusBadge(val); } },
       { key: 'ubicacion', label: 'Ubicacion' },
     ];
-    var actions = [
+    var actionsDef = [
       { label: 'Ver', class: 'btn-sm btn-info', handler: 'showAnimalDetail' },
       { label: 'Editar', class: 'btn-sm btn-warning', handler: 'editAnimal' },
-      { label: 'Eliminar', class: 'btn-sm btn-danger', handler: 'deleteAnimalRecord' },
+      { label: '🗑️', class: 'btn-sm btn-ghost text-danger', handler: 'deleteAnimalRecord', title: 'Eliminar animal' },
     ];
-    renderTable('inventario-table', animales, columns, actions);
+
+    var tableHtml = '<div class="table-responsive"><table class="data-table">';
+    tableHtml += '<thead><tr>';
+    columns.forEach(function(col) {
+      tableHtml += '<th>' + col.label + '</th>';
+    });
+    tableHtml += '<th>Acciones</th></tr></thead><tbody>';
+
+    slice.forEach(function(row) {
+      tableHtml += '<tr data-id="' + row.id + '">';
+      columns.forEach(function(col) {
+        var value = row[col.key];
+        var display = col.render ? col.render(value, row) : (value !== null && value !== undefined ? value : '');
+        tableHtml += '<td>' + display + '</td>';
+      });
+      tableHtml += '<td class="actions-cell">';
+      actionsDef.forEach(function(action) {
+        var titleAttr = action.title ? ' title="' + action.title + '"' : '';
+        tableHtml += '<button class="btn ' + action.class + '" data-action="' + action.handler + '" data-id="' + row.id + '"' + titleAttr + '>' + action.label + '</button> ';
+      });
+      tableHtml += '</td></tr>';
+    });
+    tableHtml += '</tbody></table></div>';
+
+    // Paginacion
+    var paginationHtml = '';
+    if (total > _INV_PAGE_SIZE) {
+      paginationHtml = '<div class="pagination-bar">' +
+        '<span class="pagination-info">Página ' + _invPage + ' de ' + totalPages + '</span>' +
+        '<div class="pagination-controls">' +
+          '<button class="pagination-btn" id="inv-prev-btn"' + (_invPage <= 1 ? ' disabled' : '') + '>&#8592; Anterior</button>' +
+          '<button class="pagination-btn" id="inv-next-btn"' + (_invPage >= totalPages ? ' disabled' : '') + '>Siguiente &#8594;</button>' +
+        '</div>' +
+      '</div>';
+    }
+
+    container.innerHTML = countHtml + tableHtml + paginationHtml;
+
+    // Bind paginacion
+    var prevBtn = document.getElementById('inv-prev-btn');
+    var nextBtn = document.getElementById('inv-next-btn');
+    if (prevBtn) {
+      prevBtn.addEventListener('click', function () {
+        if (_invPage > 1) { _invPage--; renderInventarioPaginated(); }
+      });
+    }
+    if (nextBtn) {
+      nextBtn.addEventListener('click', function () {
+        if (_invPage < totalPages) { _invPage++; renderInventarioPaginated(); }
+      });
+    }
+
+    // Bind action buttons
+    container.querySelectorAll('[data-action]').forEach(function (btn) {
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var action = btn.getAttribute('data-action');
+        var id = btn.getAttribute('data-id');
+        if (typeof App[action] === 'function') {
+          App[action](id);
+        }
+      });
+    });
   }
 
   function initInventarioFilters() {
@@ -471,6 +672,7 @@ var App = (function () {
   // ══════════════════════════════════════════
 
   function initOrdenes() {
+    renderOrdenesResumen();
     renderOrdenesTable();
     initOrdenesFilters();
 
@@ -482,6 +684,28 @@ var App = (function () {
           saveOrden(formData);
         });
       });
+    }
+  }
+
+  function renderOrdenesResumen() {
+    var ordenes = DB.getData('ordenes');
+    var totalCompras = ordenes
+      .filter(function(o) { return o.tipo === 'Compra' && o.estadoOrden === 'Completada'; })
+      .reduce(function(sum, o) { return sum + (parseFloat(o.total) || 0); }, 0);
+    var totalVentas = ordenes
+      .filter(function(o) { return o.tipo === 'Venta' && o.estadoOrden === 'Completada'; })
+      .reduce(function(sum, o) { return sum + (parseFloat(o.total) || 0); }, 0);
+    var ganancia = totalVentas - totalCompras;
+
+    var elCompras = document.getElementById('or-total-compras');
+    var elVentas = document.getElementById('or-total-ventas');
+    var elGanancia = document.getElementById('or-ganancia');
+
+    if (elCompras) elCompras.textContent = Utils.formatCOP(totalCompras);
+    if (elVentas) elVentas.textContent = Utils.formatCOP(totalVentas);
+    if (elGanancia) {
+      elGanancia.textContent = Utils.formatCOP(ganancia);
+      elGanancia.style.color = ganancia >= 0 ? '#16a34a' : '#dc2626';
     }
   }
 
@@ -502,7 +726,7 @@ var App = (function () {
     ];
     var actions = [
       { label: 'Editar', class: 'btn-sm btn-warning', handler: 'editOrden' },
-      { label: 'Eliminar', class: 'btn-sm btn-danger', handler: 'deleteOrdenRecord' },
+      { label: '🗑️', class: 'btn-sm btn-ghost text-danger', handler: 'deleteOrdenRecord' },
     ];
     renderTable('ordenes-table', ordenes, columns, actions);
   }
@@ -570,7 +794,7 @@ var App = (function () {
     ];
     var actions = [
       { label: 'Editar', class: 'btn-sm btn-warning', handler: 'editActividad' },
-      { label: 'Eliminar', class: 'btn-sm btn-danger', handler: 'deleteActividadRecord' },
+      { label: '🗑️', class: 'btn-sm btn-ghost text-danger', handler: 'deleteActividadRecord' },
     ];
     renderTable('salud-table', actividades, columns, actions);
   }
@@ -608,10 +832,34 @@ var App = (function () {
   //  COSTOS
   // ══════════════════════════════════════════
 
+  // Estado del selector de mes en costos
+  var _costosMesActivo = (function() {
+    var hoy = new Date();
+    return hoy.getFullYear() + '-' + String(hoy.getMonth() + 1).padStart(2, '0');
+  })();
+
+  var MONTH_NAMES_FULL = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+  function formatMesLabel(mesStr) {
+    var parts = mesStr.split('-');
+    return MONTH_NAMES_FULL[parseInt(parts[1], 10) - 1] + ' ' + parts[0];
+  }
+
   function initCostos() {
+    // Inicializar selector de mes con mes actual
+    var hoy = new Date();
+    _costosMesActivo = hoy.getFullYear() + '-' + String(hoy.getMonth() + 1).padStart(2, '0');
+
+    initMesNavCostos();
     renderCostosTable();
     initCostosFilters();
-    renderCostosMesActual();
+    renderCostosKpis();
+    renderCostosSummary();
+
+    // Grafico costos por categoria
+    if (typeof Charts !== 'undefined' && Charts.costsByCategory) {
+      Charts.costsByCategory('chart-costos-categoria');
+    }
 
     var btnAdd = document.getElementById('btn-add-costo');
     if (btnAdd) {
@@ -624,8 +872,60 @@ var App = (function () {
     }
   }
 
+  function initMesNavCostos() {
+    var label = document.getElementById('mesNavLabel');
+    var btnPrev = document.getElementById('btnMesAnteriorCostos');
+    var btnNext = document.getElementById('btnMesSiguienteCostos');
+    var filterMes = document.getElementById('filter-mes-costo');
+
+    function updateMes() {
+      if (label) label.textContent = formatMesLabel(_costosMesActivo);
+      if (filterMes) filterMes.value = _costosMesActivo;
+      renderCostosTable();
+      renderCostosKpis();
+      renderCostosSummary();
+    }
+
+    if (btnPrev) {
+      btnPrev.addEventListener('click', function() {
+        var parts = _costosMesActivo.split('-');
+        var y = parseInt(parts[0], 10);
+        var m = parseInt(parts[1], 10);
+        m--;
+        if (m < 1) { m = 12; y--; }
+        _costosMesActivo = y + '-' + String(m).padStart(2, '0');
+        updateMes();
+      });
+    }
+    if (btnNext) {
+      btnNext.addEventListener('click', function() {
+        var parts = _costosMesActivo.split('-');
+        var y = parseInt(parts[0], 10);
+        var m = parseInt(parts[1], 10);
+        m++;
+        if (m > 12) { m = 1; y++; }
+        _costosMesActivo = y + '-' + String(m).padStart(2, '0');
+        updateMes();
+      });
+    }
+
+    // Label inicial
+    if (label) label.textContent = formatMesLabel(_costosMesActivo);
+  }
+
+  function getCostosMesFiltrados() {
+    var costos = DB.getData('costos');
+    var filterCategoria = document.getElementById('filter-categoria-costo');
+    if (filterCategoria && filterCategoria.value) {
+      costos = costos.filter(function(c) { return c.categoria === filterCategoria.value; });
+    }
+    return costos.filter(function(c) {
+      return c.fecha && c.fecha.slice(0, 7) === _costosMesActivo;
+    });
+  }
+
   function renderCostosTable(data) {
-    var costos = data || DB.getData('costos');
+    var costos = data !== undefined ? data : getCostosMesFiltrados();
     var columns = [
       { key: 'id', label: 'ID' },
       { key: 'fecha', label: 'Fecha', render: function (val) { return Utils.formatDate(val); } },
@@ -638,58 +938,166 @@ var App = (function () {
     ];
     var actions = [
       { label: 'Editar', class: 'btn-sm btn-warning', handler: 'editCosto' },
-      { label: 'Eliminar', class: 'btn-sm btn-danger', handler: 'deleteCostoRecord' },
+      { label: '🗑️', class: 'btn-sm btn-ghost text-danger', handler: 'deleteCostoRecord' },
     ];
     renderTable('costos-table', costos, columns, actions);
   }
 
+  function renderCostosKpis() {
+    var costos = getCostosMesFiltrados();
+    var animalesActivos = DB.getData('animales').filter(function(a) {
+      return a.estado === 'Activo' || a.estado === 'En tratamiento' || a.estado === 'Cuarentena';
+    });
+    var huevos = DB.getData('huevos') || [];
+
+    var totalMes = costos.reduce(function(sum, c) { return sum + (parseFloat(c.total) || 0); }, 0);
+
+    // Costo por animal
+    var costoPorAnimal = animalesActivos.length > 0 ? Math.round(totalMes / animalesActivos.length) : 0;
+
+    // Huevos del mes activo
+    var huevosMesActivo = 0;
+    huevos.forEach(function(h) {
+      if ((h.fecha || '').slice(0, 7) === _costosMesActivo) {
+        huevosMesActivo += (parseInt(h.cantidad) || 0) - (parseInt(h.rotos) || 0);
+      }
+    });
+    var costoPorHuevo = (huevosMesActivo > 0 && totalMes > 0) ? Math.round(totalMes / huevosMesActivo) : null;
+
+    // Costo por dia (dias transcurridos del mes)
+    var hoy = new Date();
+    var partesMes = _costosMesActivo.split('-');
+    var mesYear = parseInt(partesMes[0], 10);
+    var mesMonth = parseInt(partesMes[1], 10) - 1;
+    var primerDia = new Date(mesYear, mesMonth, 1);
+    var ultimoDia = new Date(mesYear, mesMonth + 1, 0);
+    var diaRef = hoy < ultimoDia ? hoy : ultimoDia;
+    var diasTranscurridos = Math.max(1, Math.floor((diaRef - primerDia) / 86400000) + 1);
+    var costoPorDia = totalMes > 0 ? Math.round(totalMes / diasTranscurridos) : 0;
+    var proyeccionMensual = costoPorDia * 30;
+
+    // Actualizar KPIs
+    var elTotal = document.getElementById('costos-mes-total');
+    var elAnimal = document.getElementById('costos-por-animal');
+    var elHuevo = document.getElementById('costos-por-huevo');
+    var elProyeccion = document.getElementById('costos-proyeccion');
+
+    if (elTotal) elTotal.textContent = Utils.formatCOP(totalMes);
+    if (elAnimal) elAnimal.textContent = costoPorAnimal > 0 ? Utils.formatCOP(costoPorAnimal) : '—';
+    if (elHuevo) elHuevo.textContent = costoPorHuevo ? Utils.formatCOP(costoPorHuevo) : '—';
+    if (elProyeccion) elProyeccion.textContent = proyeccionMensual > 0 ? Utils.formatCOP(proyeccionMensual) : '—';
+  }
+
   function renderCostosMesActual() {
-    var el = document.getElementById('costos-mes-total');
-    if (!el) return;
-    var stats = getStats();
-    el.textContent = Utils.formatCOP(stats.costosMesActual);
+    renderCostosKpis();
+  }
+
+  function renderCostosSummary() {
+    var container = document.getElementById('costosSummary');
+    if (!container) return;
+
+    var costos = getCostosMesFiltrados();
+    var totalMes = costos.reduce(function(sum, c) { return sum + (parseFloat(c.total) || 0); }, 0);
+
+    // Agrupar por categoria
+    var porCat = {};
+    costos.forEach(function(c) {
+      var cat = c.categoria || 'Sin categoria';
+      porCat[cat] = (porCat[cat] || 0) + (parseFloat(c.total) || 0);
+    });
+
+    var cats = Object.keys(porCat).sort(function(a, b) { return porCat[b] - porCat[a]; });
+
+    if (cats.length === 0) {
+      container.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--muted)"><p style="font-size:1.5rem;margin-bottom:0.5rem">📋</p><p style="font-size:0.88rem">Sin costos registrados en ' + formatMesLabel(_costosMesActivo) + '</p></div>';
+      return;
+    }
+
+    var html = '<h4 style="font-size:0.88rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:0.75rem">Desglose por Categoría</h4>';
+    cats.forEach(function(cat) {
+      var val = porCat[cat];
+      var pct = totalMes > 0 ? Math.round(val / totalMes * 100) : 0;
+      html += '<div style="margin-bottom:0.6rem">' +
+        '<div style="display:flex;justify-content:space-between;margin-bottom:0.2rem">' +
+          '<span style="font-size:0.82rem;color:var(--text)">' + cat + '</span>' +
+          '<span style="font-size:0.82rem;font-weight:600;color:var(--text)">' + Utils.formatCOP(val) + ' <span style="color:var(--muted);font-weight:400">(' + pct + '%)</span></span>' +
+        '</div>' +
+        '<div style="height:6px;background:#f0ece6;border-radius:3px;overflow:hidden">' +
+          '<div style="height:100%;width:' + pct + '%;background:var(--primary);border-radius:3px;transition:width 0.4s"></div>' +
+        '</div>' +
+      '</div>';
+    });
+    container.innerHTML = html;
   }
 
   function initCostosFilters() {
     var filterCategoria = document.getElementById('filter-categoria-costo');
-    var filterMes = document.getElementById('filter-mes-costo');
 
     if (filterCategoria) populateSelect(filterCategoria, CATEGORIAS_COSTO, 'Todas las categorias');
 
     var applyFilters = function () {
-      var costos = DB.getData('costos');
-
-      if (filterCategoria && filterCategoria.value) {
-        costos = costos.filter(function (c) { return c.categoria === filterCategoria.value; });
-      }
-
-      if (filterMes && filterMes.value) {
-        var mesVal = filterMes.value; // formato YYYY-MM
-        costos = costos.filter(function (c) {
-          return c.fecha && c.fecha.slice(0, 7) === mesVal;
-        });
-      }
-
-      renderCostosTable(costos);
+      renderCostosTable();
+      renderCostosKpis();
+      renderCostosSummary();
     };
 
     if (filterCategoria) filterCategoria.addEventListener('change', applyFilters);
-    if (filterMes) filterMes.addEventListener('change', applyFilters);
   }
 
   // ══════════════════════════════════════════
   //  RENDER TABLE (generico)
   // ══════════════════════════════════════════
 
-  function renderTable(containerId, data, columns, actions) {
+  function renderTable(containerId, data, columns, actions, emptyMsg) {
     var container = document.getElementById(containerId);
     if (!container) return;
 
     if (!data || data.length === 0) {
-      container.innerHTML = '<div class="empty-state">' +
-        '<p style="font-size:2rem;margin-bottom:8px;">📋</p>' +
-        '<p>No hay registros para mostrar.</p>' +
-      '</div>';
+      // Empty states específicos por módulo
+      var emptyConfigs = {
+        'salud-table': {
+          icon: '💉',
+          title: 'Sin registros de salud',
+          desc: 'Aún no hay vacunas, tratamientos ni revisiones registradas.',
+          btnLabel: '+ Registrar actividad',
+          btnId: 'btn-add-actividad'
+        },
+        'ordenes-table': {
+          icon: '💰',
+          title: 'Sin compras ni ventas',
+          desc: 'Registra la compra o venta de animales para hacer seguimiento.',
+          btnLabel: '+ Nueva orden',
+          btnId: 'btn-add-orden'
+        },
+        'costos-table': {
+          icon: '📋',
+          title: 'Sin costos este mes',
+          desc: 'No hay gastos registrados para el período seleccionado.',
+          btnLabel: '+ Registrar costo',
+          btnId: 'btn-add-costo'
+        },
+        'inventario-table': {
+          icon: '🐾',
+          title: 'Sin animales registrados',
+          desc: 'Agrega tu primer animal al inventario.',
+          btnLabel: '+ Nuevo animal',
+          btnId: 'btn-add-animal'
+        }
+      };
+      var cfg = emptyMsg || emptyConfigs[containerId];
+      if (cfg && cfg.title) {
+        container.innerHTML = '<div class="empty-state-friendly">' +
+          '<div class="empty-icon-big">' + cfg.icon + '</div>' +
+          '<h3>' + cfg.title + '</h3>' +
+          '<p>' + cfg.desc + '</p>' +
+          (cfg.btnId ? '<button class="btn btn-primary" onclick="document.getElementById(\'' + cfg.btnId + '\') && document.getElementById(\'' + cfg.btnId + '\').click()">' + cfg.btnLabel + '</button>' : '') +
+        '</div>';
+      } else {
+        container.innerHTML = '<div class="empty-state">' +
+          '<p style="font-size:2rem;margin-bottom:8px;">📋</p>' +
+          '<p>No hay registros para mostrar.</p>' +
+        '</div>';
+      }
       return;
     }
 
@@ -830,9 +1238,14 @@ var App = (function () {
     var required = options.required ? ' required' : '';
     var placeholder = options.placeholder || '';
     var readOnly = options.readOnly ? ' readonly style="background:#f3f4f6;"' : '';
+    var tooltip = options.tooltip || '';
+
+    var labelExtra = tooltip
+      ? ' <span title="' + tooltip + '" style="display:inline-block;width:16px;height:16px;border-radius:50%;background:#e5e7eb;color:#6b7280;font-size:0.7rem;font-weight:700;text-align:center;line-height:16px;cursor:help;margin-left:4px;">?</span>'
+      : '';
 
     var html = '<div class="form-group" style="margin-bottom:16px;">' +
-      '<label style="display:block;font-size:0.875rem;font-weight:600;color:#374151;margin-bottom:4px;" for="field-' + name + '">' + label + (options.required ? ' *' : '') + '</label>';
+      '<label style="display:block;font-size:0.875rem;font-weight:600;color:#374151;margin-bottom:4px;" for="field-' + name + '">' + label + (options.required ? ' *' : '') + labelExtra + '</label>';
 
     if (type === 'select') {
       html += '<select id="field-' + name + '" name="' + name + '"' + required +
@@ -877,12 +1290,12 @@ var App = (function () {
     html += buildField('select', 'sexo', 'Sexo', { value: a.sexo, required: true, choices: SEXOS });
     html += buildField('date', 'fechaNacimiento', 'Fecha de Nacimiento', { value: a.fechaNacimiento });
     html += buildField('number', 'peso', 'Peso (kg)', { value: a.peso, placeholder: '0' });
-    html += buildField('text', 'colorMarcas', 'Color / Marcas', { value: a.colorMarcas, placeholder: 'Ej: Blanca/Negra' });
+    html += buildField('text', 'colorMarcas', 'Color / Marcas', { value: a.colorMarcas, placeholder: 'Ej: Blanca/Negra', tooltip: 'Color principal del animal y marcas distinctivas para identificarlo fácilmente' });
     html += buildField('select', 'estado', 'Estado', { value: a.estado || 'Activo', choices: ESTADOS_ANIMAL });
     html += buildField('text', 'ubicacion', 'Ubicacion', { value: a.ubicacion, placeholder: 'Ej: Potrero Norte' });
     html += buildField('select', 'procedencia', 'Procedencia', { value: a.procedencia, choices: PROCEDENCIAS });
     html += buildField('date', 'fechaIngreso', 'Fecha de Ingreso', { value: a.fechaIngreso });
-    html += buildField('number', 'costoAdquisicion', 'Costo Adquisicion (COP)', { value: a.costoAdquisicion, placeholder: '0' });
+    html += buildField('number', 'costoAdquisicion', 'Costo Adquisicion (COP)', { value: a.costoAdquisicion, placeholder: '0', tooltip: 'Precio que se pagó para adquirir este animal. Para animales nacidos en la finca puedes dejar 0.' });
     html += buildField('select', 'madreId', 'Madre', { value: a.madreId, choices: opcionesAnimales });
     html += buildField('select', 'padreId', 'Padre', { value: a.padreId, choices: opcionesAnimales });
     html += '</div>';
@@ -942,14 +1355,14 @@ var App = (function () {
     html += buildField('date', 'fecha', 'Fecha', { value: c.fecha || new Date().toISOString().slice(0, 10), required: true });
     html += buildField('select', 'categoria', 'Categoria', { value: c.categoria, required: true, choices: CATEGORIAS_COSTO });
     html += buildField('text', 'descripcion', 'Descripcion', { value: c.descripcion, required: true, placeholder: 'Detalle del gasto' });
-    html += buildField('text', 'animales', 'Animales relacionados', { value: c.animales, placeholder: 'IDs separados por coma' });
-    html += buildField('text', 'proveedor', 'Proveedor', { value: c.proveedor, placeholder: 'Nombre del proveedor' });
+    html += buildField('text', 'animales', 'Animales relacionados', { value: c.animales, placeholder: 'IDs separados por coma', tooltip: 'Ingresa los IDs de los animales a los que aplica este costo, separados por coma. Ej: ANI-001, ANI-002' });
+    html += buildField('text', 'proveedor', 'Proveedor', { value: c.proveedor, placeholder: 'Nombre del proveedor', tooltip: 'Persona o empresa donde se compró el producto o servicio' });
     html += buildField('number', 'cantidad', 'Cantidad', { value: c.cantidad || 1, placeholder: '1' });
     html += buildField('text', 'unidad', 'Unidad', { value: c.unidad, placeholder: 'Ej: kg, litro, unidad' });
     html += buildField('number', 'valorUnitario', 'Valor Unitario (COP)', { value: c.valorUnitario, placeholder: '0' });
-    html += buildField('number', 'total', 'Total (COP)', { value: c.total, placeholder: 'Auto-calculado', readOnly: true });
+    html += buildField('number', 'total', 'Total (COP)', { value: c.total, placeholder: 'Auto-calculado', readOnly: true, tooltip: 'Se calcula automáticamente: Cantidad × Valor Unitario' });
     html += buildField('select', 'metodoPago', 'Metodo de Pago', { value: c.metodoPago, choices: METODOS_PAGO });
-    html += buildField('text', 'factura', 'No. Factura', { value: c.factura, placeholder: 'Opcional' });
+    html += buildField('text', 'factura', 'No. Factura', { value: c.factura, placeholder: 'Opcional', tooltip: 'Número de la factura o recibo del proveedor (opcional)' });
     html += '</div>';
     html += buildField('textarea', 'observaciones', 'Observaciones', { value: c.observaciones });
     html += '</form>';
@@ -1065,6 +1478,7 @@ var App = (function () {
 
     closeModal();
     renderOrdenesTable();
+    renderOrdenesResumen();
   }
 
   function saveActividad(formData, existingId) {
@@ -1120,7 +1534,8 @@ var App = (function () {
     }
     closeModal();
     renderCostosTable();
-    renderCostosMesActual();
+    renderCostosKpis();
+    renderCostosSummary();
   }
 
   // ── Edit handlers (abren modal con datos pre-llenados) ──
@@ -1164,7 +1579,9 @@ var App = (function () {
   // ── Delete handlers ──
 
   function deleteAnimalRecord(id) {
-    Utils.confirmAction('¿Eliminar este animal? Esta accion no se puede deshacer.').then(function (ok) {
+    var animal = DB.getById('animales', id);
+    var nombre = animal ? ('"' + animal.nombre + '"') : 'este animal';
+    Utils.confirmAction('¿Eliminar a ' + nombre + '? Esta accion no se puede deshacer.').then(function (ok) {
       if (!ok) return;
       DB.deleteItem('animales', id);
       Utils.showToast('Animal eliminado', 'success');
@@ -1173,16 +1590,21 @@ var App = (function () {
   }
 
   function deleteOrdenRecord(id) {
-    Utils.confirmAction('¿Eliminar esta orden? Esta accion no se puede deshacer.').then(function (ok) {
+    var orden = DB.getById('ordenes', id);
+    var desc = orden ? ('"' + (orden.tipo || 'Orden') + ' - ' + (orden.compradorVendedor || id) + '"') : 'esta orden';
+    Utils.confirmAction('¿Eliminar ' + desc + '? Esta accion no se puede deshacer.').then(function (ok) {
       if (!ok) return;
       DB.deleteItem('ordenes', id);
       Utils.showToast('Orden eliminada', 'success');
       renderOrdenesTable();
+      renderOrdenesResumen();
     });
   }
 
   function deleteActividadRecord(id) {
-    Utils.confirmAction('¿Eliminar esta actividad? Esta accion no se puede deshacer.').then(function (ok) {
+    var act = DB.getById('actividades', id);
+    var desc = act ? ('"' + (act.tipoActividad || 'Actividad') + '"') : 'esta actividad';
+    Utils.confirmAction('¿Eliminar ' + desc + '? Esta accion no se puede deshacer.').then(function (ok) {
       if (!ok) return;
       DB.deleteItem('actividades', id);
       Utils.showToast('Actividad eliminada', 'success');
@@ -1191,12 +1613,15 @@ var App = (function () {
   }
 
   function deleteCostoRecord(id) {
-    Utils.confirmAction('¿Eliminar este costo? Esta accion no se puede deshacer.').then(function (ok) {
+    var costo = DB.getById('costos', id);
+    var desc = costo ? ('"' + (costo.descripcion || costo.categoria || 'Costo') + '"') : 'este costo';
+    Utils.confirmAction('¿Eliminar ' + desc + '? Esta accion no se puede deshacer.').then(function (ok) {
       if (!ok) return;
       DB.deleteItem('costos', id);
       Utils.showToast('Costo eliminado', 'success');
       renderCostosTable();
-      renderCostosMesActual();
+      renderCostosKpis();
+      renderCostosSummary();
     });
   }
 
@@ -1358,6 +1783,7 @@ var App = (function () {
     var ordenes = DB.getData('ordenes');
     var actividades = DB.getData('actividades');
     var costos = DB.getData('costos');
+    var huevos = DB.getData('huevos') || [];
     var hoy = new Date();
     var mesActual = hoy.toISOString().slice(0, 7); // YYYY-MM
 
@@ -1412,6 +1838,19 @@ var App = (function () {
     // Ordenes pendientes
     var ordenesPendientes = ordenes.filter(function (o) { return o.estadoOrden === 'Pendiente'; });
 
+    // Huevos del mes actual
+    var diasUnicosHuevos = {};
+    var huevosMes = 0;
+    huevos.forEach(function (h) {
+      if ((h.fecha || '').slice(0, 7) === mesActual) {
+        var buenos = (parseInt(h.cantidad) || 0) - (parseInt(h.rotos) || 0);
+        huevosMes += buenos;
+        diasUnicosHuevos[h.fecha] = true;
+      }
+    });
+    var diasConHuevos = Object.keys(diasUnicosHuevos).length || 1;
+    var promedioHuevosDia = Math.round(huevosMes / diasConHuevos * 10) / 10;
+
     return {
       totalAnimales: animalesActivos.length,
       animalesPorTipo: animalesPorTipo,
@@ -1422,6 +1861,8 @@ var App = (function () {
       alertasVacunas: alertasVacunas,
       alertasTratamiento: alertasTratamiento,
       ordenesPendientes: ordenesPendientes,
+      huevosMes: huevosMes,
+      promedioHuevosDia: promedioHuevosDia,
     };
   }
 
@@ -1450,14 +1891,46 @@ var App = (function () {
   // ══════════════════════════════════════════
 
   function initHuevos() {
-    renderHuevosStats();
-    renderHuevosTable();
-
     // Precargar fecha de hoy en el quick-add
     var qaFecha = document.getElementById('qaFecha');
     if (qaFecha) {
       qaFecha.value = new Date().toISOString().slice(0, 10);
     }
+
+    // Poblar filtro de mes con los meses disponibles
+    var filterMes = document.getElementById('filterMesHuevos');
+    if (filterMes) {
+      var data = DB.getData('huevos') || [];
+      var mesesSet = {};
+      data.forEach(function(h) {
+        if (h.fecha) mesesSet[h.fecha.slice(0, 7)] = true;
+      });
+      // Agregar mes actual siempre
+      var mesHoy = new Date().toISOString().slice(0, 7);
+      mesesSet[mesHoy] = true;
+      var mesesOrdenados = Object.keys(mesesSet).sort().reverse();
+      var mesOptions = '<option value="">Todos los meses</option>';
+      mesesOrdenados.forEach(function(m) {
+        var parts = m.split('-');
+        var label = MONTH_NAMES_FULL[parseInt(parts[1], 10) - 1] + ' ' + parts[0];
+        mesOptions += '<option value="' + m + '">' + label + '</option>';
+      });
+      filterMes.innerHTML = mesOptions;
+    }
+
+    // Poblar filtro de ubicacion
+    var filterUbicacion = document.getElementById('filterUbicacionHuevos');
+    if (filterUbicacion) {
+      var ubicaciones = ['Gallinero', 'Gallinero 2', 'Libre pastoreo', 'Otro'];
+      var ubOpts = '<option value="">Todas las ubicaciones</option>';
+      ubicaciones.forEach(function(u) {
+        ubOpts += '<option value="' + u + '">' + u + '</option>';
+      });
+      filterUbicacion.innerHTML = ubOpts;
+    }
+
+    renderHuevosStats();
+    renderHuevosTable();
 
     var btnAdd = document.getElementById('btnAddHuevo');
     if (btnAdd) {
@@ -1469,13 +1942,11 @@ var App = (function () {
     // Filtros
     var searchInput = document.getElementById('searchHuevos');
     if (searchInput) {
-      searchInput.addEventListener('input', function() { renderHuevosTable(); });
+      searchInput.addEventListener('input', Utils.debounce(function() { renderHuevosTable(); }, 300));
     }
-    var filterMes = document.getElementById('filterMesHuevos');
     if (filterMes) {
       filterMes.addEventListener('change', function() { renderHuevosTable(); });
     }
-    var filterUbicacion = document.getElementById('filterUbicacionHuevos');
     if (filterUbicacion) {
       filterUbicacion.addEventListener('change', function() { renderHuevosTable(); });
     }
@@ -1541,6 +2012,8 @@ var App = (function () {
     });
   }
 
+  var GALLINAS_PONEDORAS = 4; // 4 gallinas
+
   function renderHuevosStats() {
     var data = DB.getData('huevos') || [];
     var hoy = new Date().toISOString().slice(0, 10);
@@ -1549,7 +2022,7 @@ var App = (function () {
     var semanaStr = inicioSemana.toISOString().slice(0, 10);
     var mesStr = hoy.substring(0, 7);
 
-    var huevosHoy = 0, huevosSemana = 0, huevosMes = 0, diasMes = 0;
+    var huevosHoy = 0, huevosSemana = 0, huevosMes = 0;
     var diasUnicos = {};
 
     data.forEach(function(h) {
@@ -1562,17 +2035,24 @@ var App = (function () {
       }
     });
 
-    diasMes = Object.keys(diasUnicos).length || 1;
+    var diasConRegistro = Object.keys(diasUnicos).length || 1;
+    var promedioDiario = Math.round((huevosMes / diasConRegistro) * 10) / 10;
+    var tasaPostura = GALLINAS_PONEDORAS > 0 ? Math.round((promedioDiario / GALLINAS_PONEDORAS) * 100) : 0;
+    var proyeccionMensual = Math.round(promedioDiario * 30);
 
     var elHoy = document.getElementById('statHuevosHoy');
     var elSemana = document.getElementById('statHuevosSemana');
     var elMes = document.getElementById('statHuevosMes');
     var elPromedio = document.getElementById('statPromedioDiario');
+    var elTasa = document.getElementById('statTasaPostura');
+    var elProyeccion = document.getElementById('statProyeccionMensual');
 
     if (elHoy) elHoy.textContent = huevosHoy;
     if (elSemana) elSemana.textContent = huevosSemana;
     if (elMes) elMes.textContent = huevosMes;
-    if (elPromedio) elPromedio.textContent = Math.round(huevosMes / diasMes);
+    if (elPromedio) elPromedio.textContent = promedioDiario;
+    if (elTasa) elTasa.textContent = tasaPostura + '%';
+    if (elProyeccion) elProyeccion.textContent = proyeccionMensual;
   }
 
   function renderHuevosTable() {
@@ -1810,6 +2290,8 @@ var App = (function () {
     deleteHuevo: deleteHuevo,
     quickAddHuevo: quickAddHuevo,
     getStats: getStats,
+    renderOrdenesResumen: renderOrdenesResumen,
+    renderCostosKpis: renderCostosKpis,
   };
 })();
 

@@ -72,7 +72,7 @@
             </div>
 
             <div class="filter-bar">
-                <input type="text" class="form-control search-input" id="searchHuevos" placeholder="Buscar por ubicación u observación...">
+                <input type="text" class="form-control search-input" id="searchHuevos" placeholder="Buscar por observación o ubicación...">
                 <select class="form-select" id="filterMesHuevos">
                     <option value="">Todos los meses</option>
                 </select>
@@ -81,33 +81,49 @@
                 </select>
             </div>
 
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <span class="stat-icon">🥚</span>
+            <div class="stats-grid" style="grid-template-columns:repeat(3,1fr)">
+                <div class="stat-card kpi-yellow">
+                    <div class="stat-icon" style="width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.5rem;background:rgba(202,138,4,0.12);color:#ca8a04;flex-shrink:0">🥚</div>
                     <div class="stat-info">
                         <span class="stat-value" id="statHuevosHoy">0</span>
                         <span class="stat-label">Huevos Hoy</span>
                     </div>
                 </div>
-                <div class="stat-card">
-                    <span class="stat-icon">📅</span>
-                    <div class="stat-info">
-                        <span class="stat-value" id="statHuevosSemana">0</span>
-                        <span class="stat-label">Huevos Esta Semana</span>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <span class="stat-icon">📊</span>
+                <div class="stat-card kpi-green">
+                    <div class="stat-icon" style="width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.5rem;background:rgba(22,163,74,0.12);color:#16a34a;flex-shrink:0">📊</div>
                     <div class="stat-info">
                         <span class="stat-value" id="statHuevosMes">0</span>
                         <span class="stat-label">Huevos Este Mes</span>
                     </div>
                 </div>
-                <div class="stat-card">
-                    <span class="stat-icon">📈</span>
+                <div class="stat-card kpi-blue">
+                    <div class="stat-icon" style="width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.5rem;background:rgba(37,99,235,0.12);color:#2563eb;flex-shrink:0">📈</div>
                     <div class="stat-info">
                         <span class="stat-value" id="statPromedioDiario">0</span>
                         <span class="stat-label">Promedio Diario</span>
+                    </div>
+                </div>
+                <div class="stat-card kpi-orange">
+                    <div class="stat-icon" style="width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.5rem;background:rgba(234,88,12,0.12);color:#ea580c;flex-shrink:0">🐔</div>
+                    <div class="stat-info">
+                        <span class="stat-value" id="statTasaPostura">0%</span>
+                        <span class="stat-label">Tasa de Postura</span>
+                        <span style="font-size:0.72rem;color:var(--muted)">(huevos/día ÷ 4 gallinas)</span>
+                    </div>
+                </div>
+                <div class="stat-card kpi-purple">
+                    <div class="stat-icon" style="width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.5rem;background:rgba(124,58,237,0.12);color:#7c3aed;flex-shrink:0">📅</div>
+                    <div class="stat-info">
+                        <span class="stat-value" id="statProyeccionMensual">0</span>
+                        <span class="stat-label">Proyección Mensual</span>
+                        <span style="font-size:0.72rem;color:var(--muted)">(promedio × 30 días)</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.5rem;background:rgba(92,61,46,0.12);color:var(--primary);flex-shrink:0">🗓️</div>
+                    <div class="stat-info">
+                        <span class="stat-value" id="statHuevosSemana">0</span>
+                        <span class="stat-label">Huevos Esta Semana</span>
                     </div>
                 </div>
             </div>
@@ -158,10 +174,11 @@
                         <tbody id="tbodyHuevos"></tbody>
                     </table>
                 </div>
-                <div class="empty-state" id="emptyHuevos" style="display:none">
-                    <span style="font-size:3rem">🥚</span>
-                    <p>No hay registros de huevos</p>
-                    <button class="btn btn-primary" onclick="document.getElementById('btnAddHuevos').click()">Registrar primer conteo</button>
+                <div class="empty-state-friendly" id="emptyHuevos" style="display:none">
+                    <div class="empty-icon-big">🥚</div>
+                    <h3>Sin registros de huevos</h3>
+                    <p>Usa el registro rápido de arriba o el botón para anotar la producción de hoy.</p>
+                    <button class="btn btn-primary" onclick="document.getElementById('btnAddHuevo').click()">+ Registrar primer conteo</button>
                 </div>
             </div>
 

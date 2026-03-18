@@ -421,13 +421,167 @@
       });
     },
 
+    // ── 6. Barras: producción de huevos últimos 7 días ──────────
+    huevosLast7Days: function (canvasId) {
+      Charts.destroyChart(canvasId);
+      const canvas = document.getElementById(canvasId);
+      if (!canvas) return;
+
+      const huevos = (window.DB && window.DB.getData('huevos')) || [];
+
+      // Construir mapa de los últimos 7 días
+      const dias = {};
+      const hoy = new Date();
+      const DAY_NAMES = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+      const labels = [];
+      const keys = [];
+
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date(hoy);
+        d.setDate(d.getDate() - i);
+        const key = d.toISOString().slice(0, 10);
+        keys.push(key);
+        dias[key] = 0;
+        const label = i === 0 ? 'Hoy' : DAY_NAMES[d.getDay()];
+        labels.push(label);
+      }
+
+      huevos.forEach(function (h) {
+        if (dias[h.fecha] !== undefined) {
+          dias[h.fecha] += (parseInt(h.cantidad) || 0) - (parseInt(h.rotos) || 0);
+        }
+      });
+
+      const values = keys.map(function (k) { return dias[k]; });
+      const hasData = values.some(function (v) { return v > 0; });
+
+      if (!hasData) {
+        const parent = canvas.closest('.card');
+        if (parent) {
+          const existing = parent.querySelector('.chart-empty-msg');
+          if (!existing) {
+            const msg = document.createElement('div');
+            msg.className = 'chart-empty-msg';
+            msg.style.cssText = 'text-align:center;padding:2rem;color:#9ca3af;font-size:0.88rem;';
+            msg.innerHTML = '<div style="font-size:2rem;margin-bottom:0.5rem">🥚</div>' +
+              '<p>Aún no hay registros de huevos esta semana.</p>' +
+              '<a href="huevos.html?action=addHuevo" style="display:inline-block;margin-top:0.75rem;padding:0.4rem 1rem;background:#5C3D2E;color:#fff;border-radius:6px;font-size:0.82rem;text-decoration:none;">+ Registrar hoy</a>';
+            canvas.parentNode.insertBefore(msg, canvas);
+            canvas.style.display = 'none';
+          }
+        }
+        return;
+      }
+
+      Charts.instances[canvasId] = new Chart(canvas, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Huevos buenos',
+            data: values,
+            backgroundColor: keys.map(function (k, i) {
+              return i === 6 ? 'rgba(45, 90, 61, 0.85)' : 'rgba(45, 90, 61, 0.45)';
+            }),
+            borderColor: '#2D5A3D',
+            borderWidth: 1,
+            borderRadius: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: function (ctx) {
+                  return ctx.parsed.y + ' huevos';
+                }
+              }
+            }
+          },
+          scales: {
+            y: { beginAtZero: true, ticks: { stepSize: 1 } }
+          }
+        }
+      });
+    },
+
+    // ── 7. Dona: animales por sexo (cuando solo hay 1 tipo) ─────
+    animalsBySex: function (canvasId) {
+      Charts.destroyChart(canvasId);
+      const canvas = document.getElementById(canvasId);
+      if (!canvas) return;
+
+      const animales = (window.DB && window.DB.getData('animales')) || [];
+      const activos = animales.filter(function (a) { return a.estado === 'Activo'; });
+
+      const grupos = { 'Macho': 0, 'Hembra': 0, 'Indeterminado': 0 };
+      activos.forEach(function (a) {
+        var s = a.sexo || 'Indeterminado';
+        if (grupos[s] !== undefined) {
+          grupos[s]++;
+        } else {
+          grupos['Indeterminado']++;
+        }
+      });
+
+      const labels = Object.keys(grupos).filter(function (k) { return grupos[k] > 0; });
+      const data = labels.map(function (l) { return grupos[l]; });
+      const colors = { 'Macho': '#5C3D2E', 'Hembra': '#C084FC', 'Indeterminado': '#94A3B8' };
+
+      Charts.instances[canvasId] = new Chart(canvas, {
+        type: 'doughnut',
+        data: {
+          labels: labels,
+          datasets: [{
+            data: data,
+            backgroundColor: labels.map(function (l) { return colors[l] || '#8B6914'; }),
+            borderWidth: 2,
+            borderColor: '#fff'
+          }]
+        },
+        options: {
+          responsive: true,
+          cutout: '60%',
+          plugins: {
+            legend: { position: 'bottom' }
+          }
+        }
+      });
+    },
+
     // ── Dashboard init ──────────────────────────────────────────
     initDashboard: function () {
       Charts.destroyAll();
-      Charts.animalsByType('chart-animals-type');
+
+      // Decidir si mostrar por tipo o por sexo
+      const animales = (window.DB && window.DB.getData('animales')) || [];
+      const activos = animales.filter(function (a) { return a.estado === 'Activo'; });
+      const tipos = {};
+      activos.forEach(function (a) {
+        var t = a.tipo || 'Sin tipo';
+        tipos[t] = (tipos[t] || 0) + 1;
+      });
+
+      if (Object.keys(tipos).length <= 1 && activos.length > 0) {
+        // Solo 1 tipo → mostrar por sexo
+        const cardTitle = document.querySelector('#chart-animals-type')
+          ? document.querySelector('#chart-animals-type').closest('.card') : null;
+        if (cardTitle) {
+          const h3 = cardTitle.querySelector('h3');
+          if (h3) h3.textContent = 'Animales por Sexo';
+        }
+        Charts.animalsBySex('chart-animals-type');
+      } else {
+        Charts.animalsByType('chart-animals-type');
+      }
+
       Charts.monthlyCosts('chart-monthly-costs');
       Charts.inventoryEvolution('chart-inventory-evolution');
       Charts.topAnimalsByCost('chart-top-costs');
+      Charts.huevosLast7Days('chart-huevos-7dias');
     }
   };
 
