@@ -340,16 +340,15 @@ var App = (function () {
         iconBg: 'rgba(234,88,12,0.12)',
         iconColor: '#ea580c'
       },
-      // HUEVOS OCULTO: sin gallinas poniendo aún
-      // {
-      //   label: 'Huevos Este Mes',
-      //   value: stats.huevosMes !== undefined ? stats.huevosMes : '—',
-      //   icon: '🥚',
-      //   kpiClass: 'kpi-yellow',
-      //   iconBg: 'rgba(202,138,4,0.12)',
-      //   iconColor: '#ca8a04',
-      //   sub: stats.promedioHuevosDia !== undefined ? (stats.promedioHuevosDia + ' / día') : ''
-      // },
+      {
+        label: 'Huevos Este Mes',
+        value: stats.huevosMes !== undefined ? stats.huevosMes : '—',
+        icon: '🥚',
+        kpiClass: 'kpi-yellow',
+        iconBg: 'rgba(202,138,4,0.12)',
+        iconColor: '#ca8a04',
+        sub: stats.promedioHuevosDia !== undefined ? (stats.promedioHuevosDia + ' / día') : ''
+      },
       {
         label: 'Actividades Pendientes',
         value: stats.actividadesPendientes,
@@ -391,33 +390,30 @@ var App = (function () {
       ? Math.round(stats.costosMesActual / stats.totalAnimales)
       : 0;
 
-    // HUEVOS OCULTO: sin gallinas poniendo aún
-    // var costoPorHuevo = (stats.huevosMes && stats.huevosMes > 0 && stats.costosMesActual > 0)
-    //   ? (stats.costosMesActual / stats.huevosMes).toFixed(0)
-    //   : null;
+    var costoPorHuevo = (stats.huevosMes && stats.huevosMes > 0 && stats.costosMesActual > 0)
+      ? (stats.costosMesActual / stats.huevosMes).toFixed(0)
+      : null;
 
     var margen = stats.totalVentas > 0
       ? (stats.totalVentas - stats.costosMesActual)
       : null;
 
     var items = [
-      // HUEVOS OCULTO: sin gallinas poniendo aún
-      // {
-      //   label: 'Huevos en ' + mesNombre,
-      //   value: (stats.huevosMes || 0).toString(),
-      //   cls: 'neutral'
-      // },
+      {
+        label: 'Huevos en ' + mesNombre,
+        value: (stats.huevosMes || 0).toString(),
+        cls: 'neutral'
+      },
       {
         label: 'Costos en ' + mesNombre,
         value: Utils.formatCOP(stats.costosMesActual),
         cls: ''
       },
-      // HUEVOS OCULTO: sin gallinas poniendo aún
-      // {
-      //   label: 'Costo por huevo',
-      //   value: costoPorHuevo ? Utils.formatCOP(costoPorHuevo) : '—',
-      //   cls: ''
-      // },
+      {
+        label: 'Costo por huevo',
+        value: costoPorHuevo ? Utils.formatCOP(costoPorHuevo) : '—',
+        cls: ''
+      },
       {
         label: 'Costo por animal',
         value: costoPorAnimal > 0 ? Utils.formatCOP(costoPorAnimal) : '—',

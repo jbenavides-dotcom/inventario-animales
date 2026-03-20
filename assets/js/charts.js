@@ -581,8 +581,7 @@
       Charts.monthlyCosts('chart-monthly-costs');
       Charts.inventoryEvolution('chart-inventory-evolution');
       Charts.topAnimalsByCost('chart-top-costs');
-      // HUEVOS OCULTO: sin gallinas poniendo aún
-      // Charts.huevosLast7Days('chart-huevos-7dias');
+      Charts.huevosLast7Days('chart-huevos-7dias');
     }
   };
 
