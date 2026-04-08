@@ -213,9 +213,11 @@
 
       const last6 = getLastNMonthKeys(6);
 
-      // Para cada mes, contar cuántos animales estaban activos
-      // (fechaIngreso <= fin de mes Y estado Activo/En tratamiento/Cuarentena)
-      const ESTADOS_VIVOS = ['Activo', 'En tratamiento', 'Cuarentena'];
+      // Para cada mes, contar cuántos animales estaban vivos EN ESE MES.
+      // Un animal cuenta si:
+      //   - Entró antes del fin del mes (fechaIngreso <= endOfMonth)
+      //   - Y NO salió antes del fin del mes (sin fechaSalida o fechaSalida > endOfMonth)
+      // Esto reconstruye el histórico real, no el estado actual.
       const counts = last6.map(function (mk) {
         var parts = mk.split('-');
         var year = parseInt(parts[0], 10);
@@ -226,12 +228,10 @@
           if (!a.fechaIngreso) return false;
           var ingreso = new Date(a.fechaIngreso);
           if (ingreso > endOfMonth) return false;
-          // Excluir fallecidos, vendidos, perdidos, etc.
-          if (!ESTADOS_VIVOS.includes(a.estado)) return false;
-          // Si tiene fecha de salida y es antes del fin del mes, no contar
+          // Si ya tenía fecha de salida y fue antes del fin del mes, no cuenta
           if (a.fechaSalida) {
             var salida = new Date(a.fechaSalida);
-            if (salida < new Date(year, month - 1, 1)) return false;
+            if (salida <= endOfMonth) return false;
           }
           return true;
         }).length;

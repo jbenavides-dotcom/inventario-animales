@@ -37,7 +37,8 @@ const DB = (function() {
             id:'id', nombre:'nombre', tipo:'tipo', raza:'raza', sexo:'sexo',
             fechaNacimiento:'fecha_nacimiento', peso:'peso', colorMarcas:'color_marcas',
             estado:'estado', ubicacion:'ubicacion', procedencia:'procedencia',
-            fechaIngreso:'fecha_ingreso', costoAdquisicion:'costo_adquisicion',
+            fechaIngreso:'fecha_ingreso', fechaSalida:'fecha_salida',
+            costoAdquisicion:'costo_adquisicion',
             madreId:'madre_id', padreId:'padre_id', foto:'foto', observaciones:'observaciones'
         },
         ordenes: {
